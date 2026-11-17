@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadísticas - Focus Rusher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' };
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: transparent;
+            margin: 0;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .dark ::-webkit-scrollbar-thumb { background: #334155; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+
+    <div class="max-w-md mx-auto pb-10">
+        <h1 id="txt-title" class="text-2xl font-black mb-4 text-slate-800 dark:text-white">Estadísticas</h1>
+        
+        <div id="stat-hours" class="text-slate-400 dark:text-slate-500 text-5xl font-black mb-6 font-mono">0.0 H</div>
+        
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="bg-indigo-50 dark:bg-indigo-950/40 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 transition-colors">
+                <p id="txt-completed-label" class="text-[10px] font-bold text-indigo-400 dark:text-indigo-300 uppercase tracking-wider mb-1">Completadas</p>
+                <p id="stat-completed" class="text-2xl font-black text-indigo-600 dark:text-indigo-400 font-mono">0</p>
+            </div>
+            <div class="bg-rose-50 dark:bg-rose-950/40 p-4 rounded-2xl border border-rose-100 dark:border-rose-900/50 transition-colors">
+                <p id="txt-failed-label" class="text-[10px] font-bold text-rose-400 dark:text-rose-300 uppercase tracking-wider mb-1">Fallidas</p>
+                <p id="stat-failed" class="text-2xl font-black text-rose-600 dark:text-rose-400 font-mono">0</p>
+            </div>
+        </div>
+
+        <div class="bg-slate-100 dark:bg-slate-800/80 p-5 rounded-3xl mb-6 flex items-center justify-between border-b-4 border-slate-200 dark:border-slate-700 transition-colors">
+            <div>
+                <p id="txt-deaths-label" class="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-1">Bajas de Manada</p>
+                <p id="stat-deaths" class="text-3xl font-black text-slate-700 dark:text-slate-200 font-mono">0</p>
+            </div>
+            <div class="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-2xl flex items-center justify-center">
+                <i data-lucide="skull" class="w-6 h-6 text-slate-400 dark:text-slate-300"></i>
+            </div>
+        </div>
+
+        <div id="txt-footer" class="bg-slate-100/70 dark:bg-slate-800/50 rounded-3xl p-6 border-2 border-dashed border-slate-200 dark:border-slate-700 min-h-[120px] flex items-center justify-center text-slate-400 dark:text-slate-400 text-center text-xs leading-relaxed transition-colors">
+            Tus horas y sesiones totales nunca se borran.<br>Solo la evolución es frágil.
+        </div>
+    </div>
+
+    <script>
+        const i18nStats = {
+            es: {
+                title: "Estadísticas",
+                completedLabel: "Completadas",
+                failedLabel: "Fallidas",
+                deathsLabel: "Bajas de Manada",
+                footerText: "Tus horas y sesiones totales nunca se borran.<br>Solo la evolución es frágil."
+            },
+            en: {
+                title: "Statistics",
+                completedLabel: "Completed",
+                failedLabel: "Failed",
+                deathsLabel: "Pack Casualties",
+                footerText: "Your total hours and sessions are never erased.<br>Only evolution is fragile."
+            }
+        };
+
+        function applySettings(theme, lang) {
+            if (theme) {
+                if (theme === 'dark') document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+            }
+            if (lang && i18nStats[lang]) {
+                const t = i18nStats[lang];
+                document.getElementById('txt-title').innerText = t.title;
+                document.getElementById('txt-completed-label').innerText = t.completedLabel;
+                document.getElementById('txt-failed-label').innerText = t.failedLabel;
+                document.getElementById('txt-deaths-label').innerText = t.deathsLabel;
+                document.getElementById('txt-footer').innerHTML = t.footerText;
+            }
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        applySettings(urlParams.get('theme') || localStorage.getItem('theme'), urlParams.get('lang') || localStorage.getItem('lang') || 'es');
+
+        window.addEventListener('message', (event) => {
+            if (event.origin !== window.location.origin) return;
+            const data = event.data;
+            if (!data) return;
+
+            if (data.theme || data.lang) {
+                applySettings(data.theme, data.lang);
+            }
+
+            if (data.type === 'FOCUS_RUSHER_SYNC' && data.payload) {
+                const p = data.payload;
+                if (typeof p.totalHours === 'number') document.getElementById('stat-hours').innerText = `${p.totalHours.toFixed(1)} H`;
+                if (typeof p.completedSessions === 'number') document.getElementById('stat-completed').innerText = p.completedSessions;
+                if (typeof p.failedSessions === 'number') document.getElementById('stat-failed').innerText = p.failedSessions;
+                
+                // CORRECCIÓN AQUÍ (cambiando wolfDeaths por deaths):
+                if (typeof p.deaths === 'number') document.getElementById('stat-deaths').innerText = p.deaths;
+            }
+        });
+
+        window.onload = () => {
+            if (window.lucide) lucide.createIcons();
+        };
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD5nMXGPuYDLspZGAkS1nE3XSF6RvMaVdw",
+            authDomain: "focusrusherv4.firebaseapp.com",
+            projectId: "focusrusherv4",
+            storageBucket: "focusrusherv4.firebasestorage.app",
+            messagingSenderId: "821506625432",
+            appId: "1:821506625432:web:f5428274eb45561c2be5ed"
+        };
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'focus-rusher-pwa';
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                let schoolId = "default-school";
+                try {
+                    const saved = JSON.parse(sessionStorage.getItem('school_user_session') || localStorage.getItem('school_user_session') || '{}');
+                    if (saved.schoolId) schoolId = saved.schoolId;
+                } catch (e) {}
+
+                const userDocRef = doc(db, 'artifacts', appId, 'schools', schoolId, 'users', user.uid);
+                onSnapshot(userDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        const totalHours = data.totalHours ?? 0;
+                        const completed = data.completedSessions ?? 0;
+                        const failed = data.failedSessions ?? 0;
+                        const deaths = data.deaths ?? 0;
+
+                        document.getElementById('stat-hours').innerText = `${totalHours.toFixed(1)} H`;
+                        document.getElementById('stat-completed').innerText = completed;
+                        document.getElementById('stat-failed').innerText = failed;
+                        document.getElementById('stat-deaths').innerText = deaths;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

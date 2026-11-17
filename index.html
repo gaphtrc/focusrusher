@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sistema Escolar PWA - Focus Rusher</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Manifest & PWA Config -->
+  <link rel="manifest" href="data:application/manifest+json,{
+    %22name%22:%22Sistema%20Escolar%20PWA%22,
+    %22short_name%22:%22EscolarPWA%22,
+    %22start_url%22:%22.%22,
+    %22display%22:%22standalone%22,
+    %22background_color%22:%22#0f172a%22,
+    %22theme_color%22:%22#4f46e5%22,
+    %22icons%22:[{%22src%22:%22https://via.placeholder.com/192%22,%22sizes%22:%22192x192%22,%22type%22:%22image/png%22}]
+  }">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <style>
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #64748b; border-radius: 9999px; }
+    .touch-action-manipulation { touch-action: manipulation; }
+  </style>
+</head>
+<body class="h-full flex flex-col justify-between font-sans antialiased bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+
+  <!-- APP CONTAINER -->
+  <div id="app" class="flex-1 flex flex-col max-w-md mx-auto w-full min-h-screen max-h-screen h-full relative shadow-2xl bg-white dark:bg-slate-900 border-x border-slate-200 dark:border-slate-800 transition-colors duration-300 overflow-hidden">
+    
+    <!-- HEADER BAR -->
+    <div class="flex items-center justify-between px-5 py-2.5 border-b border-slate-100 dark:border-slate-800/80 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-40 flex-shrink-0">
+      <div class="flex items-center gap-2">
+        <img src="logo.png" alt="Logo" class="w-7 h-7 rounded-lg bg-white p-0.5 object-contain shadow-sm" onerror="this.onerror=null; this.src='https://placehold.co/100x100/4f46e5/ffffff?text=FR';">
+        <span class="text-xs font-black tracking-wider text-slate-800 dark:text-slate-200 font-mono">FOCUS RUSHER</span>
+      </div>
+
+      <!-- Compact UX Controls -->
+      <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 shadow-inner">
+        <button onclick="toggleLanguage()" id="btn-lang-toggle" class="px-2.5 py-1 text-[11px] font-bold rounded-xl bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm transition-all duration-200 flex items-center gap-1 active:scale-95">
+          <i data-lucide="languages" class="w-3 h-3"></i>
+          <span id="lang-label">ES</span>
+        </button>
+
+        <div class="w-[1px] h-3.5 bg-slate-300 dark:bg-slate-700"></div>
+
+        <button onclick="toggleTheme()" class="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200 active:scale-95" title="Cambiar Tema">
+          <i id="theme-icon" data-lucide="moon" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- NOTIFICATION TOAST -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-sm transition-all duration-300 transform -translate-y-20 opacity-0 pointer-events-none">
+      <div id="toast-content" class="p-4 rounded-2xl shadow-xl flex items-center gap-3 text-sm font-medium border bg-slate-800 text-white border-slate-700">
+        <i id="toast-icon" data-lucide="info" class="w-5 h-5 flex-shrink-0"></i>
+        <span id="toast-message" class="flex-1"></span>
+      </div>
+    </div>
+
+    <!-- VIEW 1: INDEX / LOGIN PAGE -->
+    <section id="view-login" class="flex-1 flex flex-col justify-between p-5 overflow-y-auto">
+      <div class="my-auto space-y-4 py-2">
+        <div class="text-center space-y-2">
+          <div class="inline-flex p-3 rounded-3xl bg-white dark:bg-slate-800 shadow-lg border border-slate-200/80 dark:border-slate-700/80 mb-1">
+            <img src="logo.png" alt="Logo Focus Rusher" class="w-20 h-20 sm:w-24 sm:h-24 object-contain rounded-2xl" onerror="this.onerror=null; this.src='https://placehold.co/240x240/4f46e5/ffffff?text=FR';">
+          </div>
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Focus Rusher</h1>
+          <p data-i18n="loginSubtitle" class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Ingresa con tus credenciales institucionales</p>
+        </div>
+
+        <form id="login-form" onsubmit="handleLogin(event)" class="space-y-3">
+          <div>
+            <label data-i18n="schoolIdLabel" class="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">ID de la Escuela</label>
+            <div class="relative">
+              <i data-lucide="building-2" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"></i>
+              <input type="text" id="login-school-id" required pattern="[A-Za-z0-9\-_]{3,30}" title="Solo letras, números y guiones (3 a 30 caracteres)" placeholder="Ej. ESCOLA-101" 
+                class="w-full pl-10 pr-3.5 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs sm:text-sm transition-all uppercase">
+            </div>
+          </div>
+
+          <div>
+            <label data-i18n="emailLabel" class="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Correo Institucional</label>
+            <div class="relative">
+              <i data-lucide="mail" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"></i>
+              <input type="email" id="login-email" required placeholder="alumno@escuela.edu" 
+                class="w-full pl-10 pr-3.5 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs sm:text-sm transition-all">
+            </div>
+          </div>
+
+          <div>
+            <label data-i18n="passLabel" class="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Contraseña</label>
+            <div class="relative">
+              <i data-lucide="lock" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"></i>
+              <input type="password" id="login-password" required minlength="6" placeholder="••••••••" 
+                class="w-full pl-10 pr-3.5 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs sm:text-sm transition-all">
+            </div>
+          </div>
+
+          <button type="submit" id="btn-login" class="w-full py-3 sm:py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-semibold rounded-2xl shadow-lg shadow-indigo-600/30 transition-all duration-150 flex items-center justify-center gap-2 mt-2 text-xs sm:text-sm">
+            <span data-i18n="btnLogin">Iniciar Sesión</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </form>
+      </div>
+
+      <!-- Footer navigation to Manage School -->
+      <div class="pt-3 border-t border-slate-200 dark:border-slate-800 text-center flex-shrink-0">
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+          <span data-i18n="adminPrompt">¿Eres Administrador de una institución?</span>
+          <button onclick="navigateTo('view-manage')" data-i18n="adminLink" class="text-indigo-600 dark:text-indigo-400 hover:underline font-medium block mt-0.5 mx-auto">
+            Gestionar / Registrar Escuela
+          </button>
+        </p>
+      </div>
+    </section>
+
+    <!-- VIEW 2: HOME PAGE (Fallback / Integrated Dashboard) -->
+    <section id="view-home" class="hidden flex-1 flex-col justify-between p-5 overflow-y-auto">
+      <div class="space-y-6">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+          <div class="flex items-center gap-3">
+            <div class="p-2.5 rounded-2xl bg-indigo-600/10 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+              <i data-lucide="user-check" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <h2 data-i18n="welcome" class="text-lg font-bold text-slate-900 dark:text-white">Bienvenido</h2>
+              <p data-i18n="userProfile" class="text-xs text-slate-500 dark:text-slate-400">Perfil de Usuario</p>
+            </div>
+          </div>
+          <button onclick="logout()" class="p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-500/20 text-slate-600 dark:text-slate-400 hover:text-rose-500 border border-slate-200 dark:border-slate-700 transition-colors" title="Logout">
+            <i data-lucide="log-out" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          <h3 data-i18n="mainData" class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Datos Principales</h3>
+
+          <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center gap-4">
+            <div class="p-3 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              <i data-lucide="building" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <p data-i18n="schoolIdLabel" class="text-xs text-slate-500 dark:text-slate-400 font-medium">ID de la Escuela</p>
+              <p id="home-school-id" class="text-base font-bold text-slate-900 dark:text-white uppercase">---</p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center gap-4">
+            <div class="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <i data-lucide="mail" class="w-6 h-6"></i>
+            </div>
+            <div class="overflow-hidden">
+              <p data-i18n="emailLabel" class="text-xs text-slate-500 dark:text-slate-400 font-medium">Correo Institucional</p>
+              <p id="home-email" class="text-sm font-bold text-slate-900 dark:text-white truncate">---</p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center gap-4">
+            <div class="p-3 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+              <i data-lucide="shield-check" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <p data-i18n="accountStatus" class="text-xs text-slate-500 dark:text-slate-400 font-medium">Estado de Cuenta</p>
+              <span id="home-status" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 mt-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse"></span> Active
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-5 rounded-3xl bg-gradient-to-br from-indigo-100 to-indigo-50 dark:from-indigo-900/40 dark:to-slate-800/80 border border-indigo-200 dark:border-indigo-500/20 space-y-2">
+          <h4 class="text-sm font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-4 h-4"></i> Campus Virtual
+          </h4>
+          <p data-i18n="campusDesc" class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            Has accedido exitosamente a la plataforma de tu institución. Desde aquí tendrás acceso a tus cursos, horarios y notificaciones institucionales.
+          </p>
+        </div>
+      </div>
+
+      <div class="pt-6">
+        <button onclick="logout()" data-i18n="btnLogout" class="w-full py-3.5 px-4 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-300 font-medium rounded-2xl border border-slate-300 dark:border-slate-700 transition-colors text-sm">
+          Cerrar Sesión Activa
+        </button>
+      </div>
+    </section>
+
+    <!-- VIEW 3: MANAGE YOUR SCHOOL PAGE -->
+    <section id="view-manage" class="hidden flex-1 flex-col p-6 overflow-y-auto space-y-6">
+      <!-- Top Bar -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+        <button onclick="navigateTo('view-login')" class="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i> <span data-i18n="backToLogin">Volver a Login</span>
+        </button>
+        <span data-i18n="adminTitle" class="text-xs font-mono text-slate-500">Administración Segura</span>
+      </div>
+
+      <!-- Navigation Tabs for Admin -->
+      <div class="flex bg-slate-200 dark:bg-slate-800 p-1.5 rounded-2xl gap-1">
+        <button id="tab-btn-register" onclick="switchAdminTab('register')" data-i18n="tabRegSchool" class="flex-1 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white transition-all">
+          Registrar Escuela
+        </button>
+        <button id="tab-btn-manage" onclick="switchAdminTab('manage')" data-i18n="tabUserPanel" class="flex-1 py-2 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-400 transition-all">
+          Panel de Usuarios
+        </button>
+      </div>
+
+      <!-- TAB 1: REGISTER SCHOOL (Using Firebase Auth for Admin) -->
+      <div id="admin-tab-register" class="space-y-4">
+        <div class="space-y-1">
+          <h2 data-i18n="regSchoolTitle" class="text-lg font-bold text-slate-900 dark:text-white">Alta de Institución</h2>
+          <p data-i18n="regSchoolSubtitle" class="text-xs text-slate-500 dark:text-slate-400">Crea un ID institucional y vincula una cuenta de Administrador real en Firebase Auth.</p>
+        </div>
+
+        <form id="register-school-form" onsubmit="handleRegisterSchool(event)" class="space-y-3.5">
+          <div>
+            <label data-i18n="newSchoolIdLabel" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Nuevo ID de Escuela</label>
+            <input type="text" id="reg-school-id" required pattern="[A-Za-z0-9\-_]{3,30}" title="Solo letras, números y guiones (3 a 30 caracteres)" placeholder="Ej. ESCOLA-2026" 
+              class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white text-sm uppercase">
+          </div>
+
+          <div>
+            <label data-i18n="adminEmailLabel" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Correo del Administrador</label>
+            <input type="email" id="reg-school-email" required placeholder="admin@escuela.edu" 
+              class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white text-sm">
+          </div>
+
+          <div>
+            <label data-i18n="masterPassLabel" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Contraseña de Administrador</label>
+            <input type="password" id="reg-school-pass" required minlength="8" placeholder="Mínimo 8 caracteres" 
+              class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white text-sm">
+          </div>
+
+          <button type="submit" id="btn-reg-school" data-i18n="btnRegSchool" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-2xl shadow-lg shadow-indigo-600/30 text-sm transition-all">
+            Registrar Escuela
+          </button>
+        </form>
+      </div>
+
+      <!-- TAB 2: MANAGE USERS -->
+      <div id="admin-tab-manage" class="hidden space-y-5">
+        <!-- Admin Auth Check Banner -->
+        <div id="admin-auth-box" class="p-4 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 space-y-3">
+          <div data-i18n="schoolAuthHeader" class="flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400">
+            <i data-lucide="shield-check" class="w-4 h-4"></i> Autenticación Segura de Escuela
+          </div>
+          <p data-i18n="schoolAuthDesc" class="text-xs text-slate-500 dark:text-slate-400">Inicia sesión con tu cuenta de Administrador vinculada a la escuela.</p>
+          <div class="space-y-2">
+            <input type="text" id="admin-login-id" placeholder="ID Escuela (Ej. ESCOLA-2026)" class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white uppercase">
+            <input type="email" id="admin-login-email" placeholder="Correo Administrador" class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white">
+            <input type="password" id="admin-login-pass" placeholder="Contraseña Admin" class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white">
+          </div>
+          <button onclick="loginAdminSchool()" id="btn-admin-login" data-i18n="btnAccessPanel" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl text-xs transition-colors">
+            Acceder al Panel
+          </button>
+        </div>
+
+        <!-- Managed Content (Visible when admin authenticated via Firebase Auth) -->
+        <div id="admin-panel-content" class="hidden space-y-5">
+          <div class="p-3.5 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50 rounded-2xl flex items-center justify-between">
+            <div>
+              <span class="text-xs text-indigo-800 dark:text-indigo-300 font-medium block">
+                <span data-i18n="activeSchool">Escuela Activa:</span> <strong id="active-admin-school-title" class="text-indigo-950 dark:text-white"></strong>
+              </span>
+              <span id="active-admin-email-label" class="text-[10px] text-indigo-600/80 dark:text-indigo-400/80 font-mono"></span>
+            </div>
+            <button onclick="logoutAdmin()" data-i18n="exitAdmin" class="text-[11px] font-semibold text-rose-500 hover:underline">Salir Admin</button>
+          </div>
+
+          <!-- Create User Section -->
+          <div class="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-3">
+            <h3 data-i18n="regUserTitle" class="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <i data-lucide="user-plus" class="w-4 h-4 text-indigo-500"></i> Registrar Nuevo Usuario
+            </h3>
+            <form onsubmit="handleCreateUser(event)" class="space-y-3">
+              <div>
+                <input type="email" id="new-user-email" required placeholder="correo@institucional.edu" 
+                  class="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500">
+              </div>
+              <div>
+                <input type="password" id="new-user-pass" required minlength="6" placeholder="Contraseña Temporal (mín. 6 caracteres)" 
+                  class="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500">
+              </div>
+              <button type="submit" id="btn-create-user" data-i18n="btnCreateUser" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition-colors shadow-md shadow-indigo-600/20">
+                Crear Usuario
+              </button>
+            </form>
+          </div>
+
+          <!-- Users List -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 data-i18n="usersList" class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Lista de Usuarios</h3>
+              <button onclick="loadSchoolUsers()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                <i data-lucide="refresh-cw" class="w-3 h-3"></i> <span data-i18n="refresh">Actualizar</span>
+              </button>
+            </div>
+
+            <div id="users-list-container" class="space-y-2">
+              <p class="text-xs text-slate-500 text-center py-4">Cargando usuarios...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- SCRIPT BASE -->
+  <script>
+    window.state = {
+      currentUser: null,
+      activeAdminSchool: null,
+      usersUnsubscribe: null,
+      theme: 'auto',
+      lang: 'auto'
+    };
+
+    window.translations = {
+      es: {
+        loginSubtitle: "Ingresa con tus credenciales institucionales",
+        schoolIdLabel: "ID de la Escuela",
+        emailLabel: "Correo Institucional",
+        passLabel: "Contraseña",
+        btnLogin: "Iniciar Sesión",
+        adminPrompt: "¿Eres Administrador de una institución?",
+        adminLink: "Gestionar / Registrar Escuela",
+        welcome: "Bienvenido",
+        userProfile: "Perfil de Usuario",
+        mainData: "Datos Principales",
+        accountStatus: "Estado de Cuenta",
+        campusDesc: "Has accedido exitosamente a la plataforma de tu institución. Desde aquí tendrás acceso a tus cursos, horarios y notificaciones institucionales.",
+        btnLogout: "Cerrar Sesión Activa",
+        backToLogin: "Volver a Login",
+        adminTitle: "Administración Segura",
+        tabRegSchool: "Registrar Escuela",
+        tabUserPanel: "Panel de Usuarios",
+        regSchoolTitle: "Alta de Institución",
+        regSchoolSubtitle: "Crea un ID institucional y vincula una cuenta de Administrador real en Firebase Auth.",
+        newSchoolIdLabel: "Nuevo ID de Escuela",
+        adminEmailLabel: "Correo del Administrador",
+        masterPassLabel: "Contraseña de Administrador",
+        btnRegSchool: "Registrar Escuela",
+        schoolAuthHeader: "Autenticación Segura de Escuela",
+        schoolAuthDesc: "Inicia sesión con tu cuenta de Administrador vinculada a la escuela.",
+        btnAccessPanel: "Acceder al Panel",
+        activeSchool: "Escuela Activa:",
+        exitAdmin: "Salir Admin",
+        regUserTitle: "Registrar Nuevo Usuario",
+        btnCreateUser: "Crear Usuario",
+        usersList: "Lista de Usuarios",
+        refresh: "Actualizar"
+      },
+      en: {
+        loginSubtitle: "Sign in with your institutional credentials",
+        schoolIdLabel: "School ID",
+        emailLabel: "Institutional Email",
+        passLabel: "Password",
+        btnLogin: "Sign In",
+        adminPrompt: "Are you an institution Administrator?",
+        adminLink: "Manage / Register School",
+        welcome: "Welcome",
+        userProfile: "User Profile",
+        mainData: "Main Data",
+        accountStatus: "Account Status",
+        campusDesc: "You have successfully accessed your institution's platform. From here you can access your courses, schedules, and institutional notifications.",
+        btnLogout: "Log Out",
+        backToLogin: "Back to Login",
+        adminTitle: "Secure Administration",
+        tabRegSchool: "Register School",
+        tabUserPanel: "Users Panel",
+        regSchoolTitle: "New Institution",
+        regSchoolSubtitle: "Create an institutional ID and link a real Firebase Auth Admin account.",
+        newSchoolIdLabel: "New School ID",
+        adminEmailLabel: "Administrator Email",
+        masterPassLabel: "Administrator Password",
+        btnRegSchool: "Register School",
+        schoolAuthHeader: "Secure School Authentication",
+        schoolAuthDesc: "Sign in with your Administrator account linked to this school.",
+        btnAccessPanel: "Access Panel",
+        activeSchool: "Active School:",
+        exitAdmin: "Exit Admin",
+        regUserTitle: "Register New User",
+        btnCreateUser: "Create User",
+        usersList: "User List",
+        refresh: "Refresh"
+      }
+    };
+
+    window.setTheme = function(theme) {
+      window.state.theme = theme;
+      localStorage.setItem('theme', theme);
+      const htmlEl = document.documentElement;
+      const icon = document.getElementById('theme-icon');
+      if (theme === 'dark') {
+        htmlEl.classList.add('dark');
+        if (icon) icon.setAttribute('data-lucide', 'sun');
+      } else {
+        htmlEl.classList.remove('dark');
+        if (icon) icon.setAttribute('data-lucide', 'moon');
+      }
+      if (window.lucide) lucide.createIcons();
+    };
+
+    window.initTheme = function() {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        setTheme(savedTheme);
+      } else {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setTheme(prefersDark ? 'dark' : 'light');
+      }
+    };
+
+    window.toggleTheme = function() {
+      setTheme(window.state.theme === 'dark' ? 'light' : 'dark');
+    };
+
+    window.setLanguage = function(lang) {
+      window.state.lang = lang;
+      localStorage.setItem('lang', lang);
+      const label = document.getElementById('lang-label');
+      if (label) label.innerText = lang.toUpperCase();
+      const dict = window.translations[lang];
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict && dict[key]) {
+          el.innerText = dict[key];
+        }
+      });
+    };
+
+    window.initLanguage = function() {
+      const savedLang = localStorage.getItem('lang');
+      if (savedLang) {
+        setLanguage(savedLang);
+      } else {
+        const userLang = navigator.language || navigator.userLanguage;
+        const lang = userLang && userLang.startsWith('es') ? 'es' : 'en';
+        setLanguage(lang);
+      }
+    };
+
+    window.toggleLanguage = function() {
+      setLanguage(window.state.lang === 'es' ? 'en' : 'es');
+    };
+
+    window.initTheme();
+    window.initLanguage();
+  </script>
+
+  <!-- FIREBASE & APP LOGIC MODULE -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      createUserWithEmailAndPassword, 
+      signOut,
+      onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      doc, 
+      getDoc, 
+      setDoc, 
+      updateDoc,
+      deleteDoc, 
+      collection, 
+      onSnapshot,
+      serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyD5nMXGPuYDLspZGAkS1nE3XSF6RvMaVdw",
+      authDomain: "focusrusherv4.firebaseapp.com",
+      projectId: "focusrusherv4",
+      storageBucket: "focusrusherv4.firebasestorage.app",
+      messagingSenderId: "821506625432",
+      appId: "1:821506625432:web:f5428274eb45561c2be5ed"
+    };
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'focus-rusher-pwa';
+
+    // 1. Primary Firebase App (Manages the logged-in user or admin)
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // 2. Secondary Firebase App (Used ONLY to create new student/teacher accounts without logging out the Admin!)
+    const secondaryApp = initializeApp(firebaseConfig, "SecondaryUserCreator");
+    const secondaryAuth = getAuth(secondaryApp);
+
+    // Security Helper: Strict School ID validation
+    function isValidSchoolId(id) {
+      return /^[A-Z0-9\-_]{3,30}$/.test(id);
+    }
+
+    // Security Helper: Prevent XSS when rendering dynamic data
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag]));
+    }
+
+    // UI Helper: Toast Notifications
+    window.showToast = function(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      const toastContent = document.getElementById('toast-content');
+      const toastMsg = document.getElementById('toast-message');
+
+      if (!toast || !toastMsg) return;
+
+      toastMsg.innerText = message;
+      
+      if (type === 'error') {
+        toastContent.className = 'p-4 rounded-xl shadow-xl flex items-center gap-3 text-sm font-medium border bg-rose-950/95 text-rose-200 border-rose-800';
+      } else if (type === 'success') {
+        toastContent.className = 'p-4 rounded-xl shadow-xl flex items-center gap-3 text-sm font-medium border bg-emerald-950/95 text-emerald-200 border-emerald-800';
+      } else {
+        toastContent.className = 'p-4 rounded-xl shadow-xl flex items-center gap-3 text-sm font-medium border bg-slate-800 text-white border-slate-700';
+      }
+
+      toast.classList.remove('-translate-y-20', 'opacity-0', 'pointer-events-none');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.add('-translate-y-20', 'opacity-0', 'pointer-events-none');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 3500);
+    };
+
+    // UI Helper: Navigation
+    window.navigateTo = function(viewId) {
+      document.getElementById('view-login').classList.add('hidden');
+      document.getElementById('view-home').classList.add('hidden');
+      document.getElementById('view-manage').classList.add('hidden');
+
+      const target = document.getElementById(viewId);
+      if (target) {
+        target.classList.remove('hidden');
+        if (viewId === 'view-manage' || viewId === 'view-home' || viewId === 'view-login') {
+          target.classList.add('flex');
+        }
+      }
+      if (window.lucide) lucide.createIcons();
+    };
+
+    // UI Helper: Tab Switching in Manage page
+    window.switchAdminTab = function(tabName) {
+      const regTab = document.getElementById('admin-tab-register');
+      const manageTab = document.getElementById('admin-tab-manage');
+      const btnReg = document.getElementById('tab-btn-register');
+      const btnManage = document.getElementById('tab-btn-manage');
+
+      if (tabName === 'register') {
+        regTab.classList.remove('hidden');
+        manageTab.classList.add('hidden');
+        btnReg.className = "flex-1 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white transition-all";
+        btnManage.className = "flex-1 py-2 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-400 transition-all";
+      } else {
+        regTab.classList.add('hidden');
+        manageTab.classList.remove('hidden');
+        btnManage.className = "flex-1 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white transition-all";
+        btnReg.className = "flex-1 py-2 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-400 transition-all";
+      }
+      if (window.lucide) lucide.createIcons();
+    };
+
+    // --- LOGIC 1: STUDENT / STAFF LOGIN ---
+    window.handleLogin = async function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-login');
+      const schoolId = document.getElementById('login-school-id').value.trim().toUpperCase();
+      const email = document.getElementById('login-email').value.trim().toLowerCase();
+      const password = document.getElementById('login-password').value;
+
+      if (!isValidSchoolId(schoolId)) {
+        showToast("El ID de escuela tiene un formato inválido", "error");
+        return;
+      }
+
+      btn.disabled = true;
+      try {
+        // 1. Authenticate directly against Firebase Authentication
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // 2. Verify user membership & status using their cryptographic UID (NOT email string)
+        const userDocRef = doc(db, 'artifacts', appId, 'schools', schoolId, 'users', user.uid);
+        const userSnap = await getDoc(userDocRef);
+
+        if (!userSnap.exists()) {
+          await signOut(auth);
+          showToast("Tu cuenta no pertenece a la escuela especificada", "error");
+          return;
+        }
+
+        const userData = userSnap.data();
+        if (userData.status === 'suspended') {
+          await signOut(auth);
+          showToast("Esta cuenta ha sido suspendida por la institución", "error");
+          return;
+        }
+
+        // Save non-sensitive UI metadata in sessionStorage
+        const sessionData = {
+          schoolId: schoolId,
+          email: user.email,
+          uid: user.uid,
+          role: userData.role || 'student',
+          status: userData.status || 'active'
+        };
+        sessionStorage.setItem('school_user_session', JSON.stringify(sessionData));
+
+        showToast("Acceso confirmado. Cargando campus...", "success");
+
+        // Check if home.html exists, otherwise load integrated view-home
+        setTimeout(async () => {
+          try {
+            const checkHome = await fetch('home.html', { method: 'HEAD' });
+            if (checkHome.ok) {
+              window.location.href = 'home.html';
+            } else {
+              renderHomeView(sessionData);
+            }
+          } catch {
+            renderHomeView(sessionData);
+          }
+        }, 800);
+
+      } catch (err) {
+        console.error("Login Error:", err.code);
+        if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+          showToast("Correo o contraseña incorrectos", "error");
+        } else if (err.code === 'auth/too-many-requests') {
+          showToast("Demasiados intentos fallidos. Intenta más tarde.", "error");
+        } else {
+          showToast("Error de autenticación", "error");
+        }
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    function renderHomeView(sessionData) {
+      document.getElementById('home-school-id').innerText = sessionData.schoolId;
+      document.getElementById('home-email').innerText = sessionData.email;
+      navigateTo('view-home');
+    }
+
+    window.logout = async function() {
+      await signOut(auth);
+      sessionStorage.removeItem('school_user_session');
+      localStorage.removeItem('school_user_session');
+      navigateTo('view-login');
+      showToast("Sesión cerrada correctamente");
+    };
+
+    // --- LOGIC 2: SECURE SCHOOL REGISTRATION (FIREBASE AUTH + UID OWNERSHIP) ---
+    window.handleRegisterSchool = async function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-reg-school');
+      const schoolId = document.getElementById('reg-school-id').value.trim().toUpperCase();
+      const adminEmail = document.getElementById('reg-school-email').value.trim().toLowerCase();
+      const adminPassword = document.getElementById('reg-school-pass').value;
+
+      if (!isValidSchoolId(schoolId)) {
+        showToast("El ID de escuela solo debe contener letras, números o guiones", "error");
+        return;
+      }
+
+      btn.disabled = true;
+      try {
+        // 1. Check if school ID already exists
+        const schoolDocRef = doc(db, 'artifacts', appId, 'schools', schoolId);
+        const schoolSnap = await getDoc(schoolDocRef);
+
+        if (schoolSnap.exists()) {
+          showToast("Este ID de escuela ya está registrado", "error");
+          return;
+        }
+
+        // 2. Create real Administrator account in Firebase Authentication (No plaintext passwords in DB!)
+        const adminCred = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
+        const adminUid = adminCred.user.uid;
+
+        // 3. Create School document linking the Admin's UID as owner
+        await setDoc(schoolDocRef, {
+          schoolId: schoolId,
+          adminUid: adminUid,
+          adminEmail: adminEmail,
+          createdAt: serverTimestamp()
+        });
+
+        // 4. Also register the admin inside the school's users subcollection with role 'admin'
+        const adminUserDocRef = doc(db, 'artifacts', appId, 'schools', schoolId, 'users', adminUid);
+        await setDoc(adminUserDocRef, {
+          email: adminEmail,
+          uid: adminUid,
+          role: 'admin',
+          status: 'active',
+          createdAt: serverTimestamp()
+        });
+
+        showToast(`Escuela ${schoolId} registrada de forma segura`, "success");
+        document.getElementById('register-school-form').reset();
+        
+        // Automatically activate admin panel for this authenticated session
+        activateAdminSession(schoolId, adminEmail);
+        switchAdminTab('manage');
+
+      } catch (err) {
+        console.error("Register school error:", err.code);
+        if (err.code === 'auth/email-already-in-use') {
+          showToast("Este correo ya tiene una cuenta en Firebase Auth", "error");
+        } else if (err.code === 'auth/weak-password') {
+          showToast("La contraseña debe tener al menos 8 caracteres", "error");
+        } else {
+          showToast("Error al registrar escuela: " + err.message, "error");
+        }
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    // --- LOGIC 3: SECURE ADMIN PANEL LOGIN ---
+    window.loginAdminSchool = async function() {
+      const btn = document.getElementById('btn-admin-login');
+      const schoolId = document.getElementById('admin-login-id').value.trim().toUpperCase();
+      const email = document.getElementById('admin-login-email').value.trim().toLowerCase();
+      const password = document.getElementById('admin-login-pass').value;
+
+      if (!isValidSchoolId(schoolId) || !email || !password) {
+        showToast("Completa todos los campos de Administrador", "error");
+        return;
+      }
+
+      btn.disabled = true;
+      try {
+        // 1. Authenticate admin via Firebase Auth
+        const userCred = await signInWithEmailAndPassword(auth, email, password);
+        const uid = userCred.user.uid;
+
+        // 2. Verify that this authenticated UID matches the school's adminUid
+        const schoolDocRef = doc(db, 'artifacts', appId, 'schools', schoolId);
+        const schoolSnap = await getDoc(schoolDocRef);
+
+        if (!schoolSnap.exists() || schoolSnap.data().adminUid !== uid) {
+          await signOut(auth);
+          showToast("No tienes permisos de administrador para esta escuela", "error");
+          return;
+        }
+
+        activateAdminSession(schoolId, email);
+        showToast(`Panel desbloqueado para ${schoolId}`, "success");
+
+      } catch (err) {
+        console.error("Admin login error:", err.code);
+        showToast("Credenciales de Administrador inválidas", "error");
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    function activateAdminSession(schoolId, email) {
+      window.state.activeAdminSchool = schoolId;
+      document.getElementById('admin-auth-box').classList.add('hidden');
+      document.getElementById('admin-panel-content').classList.remove('hidden');
+      document.getElementById('active-admin-school-title').innerText = schoolId;
+      document.getElementById('active-admin-email-label').innerText = email;
+      loadSchoolUsers();
+    }
+
+    window.logoutAdmin = async function() {
+      window.state.activeAdminSchool = null;
+      if (window.state.usersUnsubscribe) window.state.usersUnsubscribe();
+      await signOut(auth);
+      document.getElementById('admin-auth-box').classList.remove('hidden');
+      document.getElementById('admin-panel-content').classList.add('hidden');
+      document.getElementById('admin-login-pass').value = '';
+      showToast("Sesión de administración cerrada");
+    };
+
+    // --- LOGIC 4: CREATE USERS USING ISOLATED SECONDARY AUTH INSTANCE ---
+    window.handleCreateUser = async function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-create-user');
+      const schoolId = window.state.activeAdminSchool;
+      if (!schoolId || !auth.currentUser) {
+        showToast("Sesión de administrador no válida", "error");
+        return;
+      }
+
+      const email = document.getElementById('new-user-email').value.trim().toLowerCase();
+      const password = document.getElementById('new-user-pass').value;
+
+      btn.disabled = true;
+      try {
+        // 1. Create user in secondaryAuth so primary admin auth session remains intact!
+        const newUserCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+        const newUserUid = newUserCredential.user.uid;
+        
+        // Immediately sign out the secondary instance
+        await signOut(secondaryAuth);
+
+        // 2. Store user document indexed by cryptographic UID under the school subcollection
+        const userDocRef = doc(db, 'artifacts', appId, 'schools', schoolId, 'users', newUserUid);
+        await setDoc(userDocRef, {
+          email: email,
+          uid: newUserUid,
+          role: 'student',
+          status: 'active',
+          createdAt: serverTimestamp()
+        });
+
+        showToast(`Usuario ${email} creado con éxito`, "success");
+        e.target.reset();
+
+      } catch (err) {
+        console.error("Create User Error:", err.code);
+        if (err.code === 'auth/email-already-in-use') {
+          showToast("El correo ya está registrado en el sistema", "error");
+        } else if (err.code === 'auth/weak-password') {
+          showToast("La contraseña debe tener al menos 6 caracteres", "error");
+        } else {
+          showToast("Error al crear usuario: " + err.message, "error");
+        }
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    // --- LOGIC 5: REALTIME USER MANAGEMENT ---
+    window.loadSchoolUsers = function() {
+      const schoolId = window.state.activeAdminSchool;
+      if (!schoolId) return;
+
+      const usersColRef = collection(db, 'artifacts', appId, 'schools', schoolId, 'users');
+
+      if (window.state.usersUnsubscribe) window.state.usersUnsubscribe();
+
+      window.state.usersUnsubscribe = onSnapshot(usersColRef, (snapshot) => {
+        const container = document.getElementById('users-list-container');
+        if (snapshot.empty) {
+          container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4 bg-slate-100 dark:bg-slate-800/40 rounded-xl">No hay usuarios registrados aún.</p>`;
+          return;
+        }
+
+        let html = '';
+        snapshot.forEach(docSnap => {
+          const user = docSnap.data();
+          const uid = docSnap.id;
+          const isSuspended = user.status === 'suspended';
+          const isAdminUser = user.role === 'admin';
+          const safeEmail = escapeHTML(user.email);
+          const safeUid = escapeHTML(uid);
+
+          html += `
+            <div class="p-3 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl flex items-center justify-between gap-2">
+              <div class="overflow-hidden">
+                <div class="flex items-center gap-1.5">
+                  <p class="text-xs font-semibold text-slate-900 dark:text-white truncate">${safeEmail}</p>
+                  ${isAdminUser ? '<span class="px-1.5 py-0.5 text-[9px] font-bold bg-indigo-500/20 text-indigo-500 rounded">ADMIN</span>' : ''}
+                </div>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <span class="text-[10px] ${isSuspended ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}">
+                    ● ${isSuspended ? 'Suspendido' : 'Activo'}
+                  </span>
+                  <span class="text-[10px] text-slate-500 font-mono">UID: ${safeUid.substring(0, 8)}...</span>
+                </div>
+              </div>
+
+              ${!isAdminUser ? `
+              <div class="flex items-center gap-1 flex-shrink-0">
+                <button onclick="toggleUserStatus('${safeUid}', '${isSuspended ? 'suspended' : 'active'}')" class="p-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 ${isSuspended ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}" title="${isSuspended ? 'Reactivar' : 'Suspender'}">
+                  <i data-lucide="${isSuspended ? 'user-check' : 'user-x'}" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="deleteUser('${safeUid}')" class="p-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-rose-500/20 text-slate-600 dark:text-slate-400 hover:text-rose-500" title="Eliminar">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+              ` : ''}
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+      }, (err) => {
+        console.error("User list snapshot error:", err);
+        showToast("Error de permisos al cargar usuarios", "error");
+      });
+    };
+
+    window.toggleUserStatus = async function(targetUid, currentStatus) {
+      const schoolId = window.state.activeAdminSchool;
+      if (!schoolId) return;
+
+      const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+      try {
+        const userDocRef = doc(db, 'artifacts', appId, 'schools', schoolId, 'users', targetUid);
+        await updateDoc(userDocRef, { status: newStatus });
+        showToast(`Estado actualizado a: ${newStatus}`, "info");
+      } catch (err) {
+        console.error(err);
+        showToast("Error al actualizar el usuario", "error");
+      }
+    };
+
+    window.deleteUser = async function(targetUid) {
+      const schoolId = window.state.activeAdminSchool;
+      if (!schoolId) return;
+
+      try {
+        const userDocRef = doc(db, 'artifacts', appId, 'schools', schoolId, 'users', targetUid);
+        await deleteDoc(userDocRef);
+        showToast("Usuario revocado de la institución", "success");
+      } catch (err) {
+        console.error(err);
+        showToast("Error al eliminar usuario", "error");
+      }
+    };
+
+    // Service Worker
+    function registerServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        const swCode = `
+          self.addEventListener('install', e => self.skipWaiting());
+          self.addEventListener('activate', e => self.clients.claim());
+          self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response('Offline'))));
+        `;
+        const blob = new Blob([swCode], { type: 'text/javascript' });
+        const url = URL.createObjectURL(blob);
+        navigator.serviceWorker.register(url).catch(err => console.log('SW reg failed', err));
+      }
+    }
+
+    // Initialize App & Check Real Firebase Auth State
+    window.addEventListener('load', () => {
+      registerServiceWorker();
+      if (window.lucide) lucide.createIcons();
+
+      onAuthStateChanged(auth, (user) => {
+        const savedSession = sessionStorage.getItem('school_user_session');
+        if (user && savedSession) {
+          try {
+            const session = JSON.parse(savedSession);
+            if (session && session.uid === user.uid && session.schoolId) {
+              renderHomeView(session);
+            }
+          } catch {
+            sessionStorage.removeItem('school_user_session');
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

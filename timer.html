@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cronómetro de Enfoque</title>
+    <link rel="shortcut icon" href="images-main/LogoForIconWeb.png" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' };
+    </script>
+    <script src="https://unpkg.com/lucide@0.446.0" defer></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            overflow: hidden; 
+            transition: background-color 0.5s ease, color 0.3s ease; 
+        }
+        
+        .app-container { 
+            max-width: 500px; 
+            margin: 0 auto; 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 2rem; 
+            position: relative; 
+            text-align: center; 
+        }
+        
+        .timer-display { 
+            font-size: 6.5rem; 
+            font-weight: 800; 
+            letter-spacing: -0.05em; 
+            line-height: 1; 
+            margin-bottom: 1.5rem; 
+        }
+        
+        #tools-panel { 
+            position: fixed; 
+            bottom: -100%; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 100%; 
+            max-width: 450px; 
+            height: 75vh; 
+            border-radius: 2.5rem 2.5rem 0 0; 
+            z-index: 150; 
+            transition: bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1); 
+            box-shadow: 0 -20px 25px -5px rgba(0, 0, 0, 0.3); 
+        }
+        
+        #tools-panel.open { bottom: 0; }
+        
+        .panel-overlay { 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(0, 0, 0, 0.6); 
+            backdrop-filter: blur(4px); 
+            display: none; 
+            z-index: 140; 
+        }
+        
+        .panel-overlay.active { display: block; }
+        
+        iframe { width: 100%; height: calc(100% - 40px); border: none; }
+        
+        .glow { 
+            position: absolute; 
+            width: 350px; 
+            height: 350px; 
+            background: radial-gradient(circle, rgba(79, 70, 229, 0.12) 0%, rgba(15, 23, 42, 0) 70%); 
+            z-index: -1; 
+        }
+        
+        body.failed { background-color: #450a0a !important; color: #fecaca !important; }
+        .failed .timer-display { color: #ef4444 !important; }
+        
+        #return-container { display: none; margin-top: 2rem; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        #rain-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: 0.4; }
+        
+        /* Mini reproductor local */
+        .volume-slider { 
+            width: 60px; 
+            height: 4px; 
+            appearance: none; 
+            border-radius: 2px; 
+            outline: none; 
+        }
+        .volume-slider::-webkit-slider-thumb { 
+            appearance: none; 
+            width: 11px; 
+            height: 11px; 
+            background: #6366f1; 
+            border-radius: 50%; 
+            cursor: pointer; 
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 select-none">
+    <canvas id="rain-canvas"></canvas>
+
+    <!-- MINI REPRODUCTOR LOCAL DE MÚSICA -->
+    <div id="music-player" class="fixed top-4 left-4 z-50 flex items-center gap-2.5 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-3.5 py-2 rounded-2xl shadow-lg max-w-[310px] transition-all">
+        <!-- Input oculto para subir archivos locales -->
+        <input type="file" id="audio-upload" accept="audio/*" multiple class="hidden">
+        
+        <!-- Botón Subir Audio -->
+        <button onclick="document.getElementById('audio-upload').click()" id="btn-upload-audio" class="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors flex-shrink-0" title="Subir archivos de audio">
+            <i data-lucide="folder-plus" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Info de Pista y Controles -->
+        <div class="flex flex-col overflow-hidden min-w-[100px] flex-1">
+            <span id="track-title" class="text-[11px] font-bold truncate text-slate-700 dark:text-slate-200">Sin pistas locales</span>
+            <span id="track-counter" class="text-[9px] font-semibold text-slate-400 dark:text-slate-500">0 archivos</span>
+        </div>
+
+        <!-- Controles Reproducción -->
+        <div class="flex items-center gap-1">
+            <button onclick="togglePlayPause()" id="btn-play-pause" disabled class="p-1.5 rounded-xl bg-indigo-600 disabled:opacity-40 text-white hover:bg-indigo-500 transition-all">
+                <i data-lucide="play" id="play-pause-icon" class="w-3.5 h-3.5 fill-current"></i>
+            </button>
+            <button onclick="nextTrack()" id="btn-next-track" disabled class="p-1.5 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors" title="Siguiente pista">
+                <i data-lucide="skip-forward" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>
+
+        <!-- Volumen -->
+        <div class="hidden sm:flex items-center gap-1.5 pl-1 border-l border-slate-200 dark:border-slate-800">
+            <i data-lucide="volume-2" class="w-3.5 h-3.5 text-slate-400"></i>
+            <input type="range" id="volume-control" class="volume-slider bg-slate-200 dark:bg-slate-700" min="0" max="1" step="0.01" value="0.7">
+        </div>
+    </div>
+
+    <!-- PANEL DE HERRAMIENTAS -->
+    <div id="panel-overlay" class="panel-overlay" onclick="toggleTools()"></div>
+    <div id="tools-panel" class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+        <div class="flex flex-col h-full">
+            <div class="h-10 w-full flex items-center justify-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-t-[2.5rem]" onclick="toggleTools()">
+                <div class="h-1.5 w-12 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
+            </div>
+            <iframe src="tools.html" id="tools-iframe" class="bg-white dark:bg-slate-900"></iframe>
+        </div>
+    </div>
+
+    <!-- CONTENEDOR CENTRAL DEL TEMPORIZADOR -->
+    <div class="app-container">
+        <div class="glow"></div>
+        <div class="timer-display text-slate-900 dark:text-white drop-shadow-sm" id="time-display">00:00</div>
+        <p class="text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-widest text-sm" id="status-text">Sesión activa</p>
+        
+        <div id="return-container">
+            <button onclick="goBack()" id="btn-go-back" class="bg-indigo-600 text-white dark:bg-white dark:text-indigo-950 px-8 py-3 rounded-2xl font-bold shadow-lg hover:opacity-90 flex items-center gap-2 mx-auto transition-all">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                <span id="txt-return">Volver al Inicio</span>
+            </button>
+        </div>
+
+        <div class="fixed bottom-10 flex gap-4">
+            <button id="tools-trigger" onclick="toggleTools()" class="bg-white/80 dark:bg-white/10 backdrop-blur-md border border-slate-200 dark:border-white/20 px-5 py-3 rounded-full flex items-center gap-2.5 shadow-lg cursor-pointer hover:scale-105 active:scale-95 transition-all z-50">
+                <i data-lucide="wrench" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
+                <span id="txt-tools" class="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider">Herramientas</span>
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, increment, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // =====================================================================
+        // 1. HERENCIA DE TEMA (DARK/LIGHT) E IDIOMA DESDE EL PADRE / STORAGE
+        // =====================================================================
+        const i18n = {
+            es: {
+                activeSession: "Sesión activa",
+                completedSession: "¡SESIÓN COMPLETADA!",
+                failedSession: "Sesión interrumpida.",
+                returnHome: "Volver al Inicio",
+                toolsBtn: "Herramientas",
+                noTracks: "Sin pistas locales",
+                filesCount: "archivos",
+                fileCount: "archivo",
+                uploadTitle: "Subir música local"
+            },
+            en: {
+                activeSession: "Active session",
+                completedSession: "SESSION COMPLETED!",
+                failedSession: "Session interrupted.",
+                returnHome: "Back to Home",
+                toolsBtn: "Tools",
+                noTracks: "No local tracks",
+                filesCount: "files",
+                fileCount: "file",
+                uploadTitle: "Upload local music"
+            }
+        };
+
+        let currentLang = 'es';
+
+        function applyInheritedSettings() {
+            // Heredar Tema (Dark / Light)
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const isDark = savedTheme ? savedTheme === 'dark' : prefersDark;
+            
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+
+            // Heredar Idioma
+            const savedLang = localStorage.getItem('lang');
+            if (savedLang && i18n[savedLang]) {
+                currentLang = savedLang;
+            } else {
+                const navLang = navigator.language || navigator.userLanguage;
+                currentLang = (navLang && navLang.startsWith('es')) ? 'es' : 'en';
+            }
+
+            const dict = i18n[currentLang];
+            document.documentElement.lang = currentLang;
+            document.getElementById('status-text').innerText = dict.activeSession;
+            document.getElementById('txt-return').innerText = dict.returnHome;
+            document.getElementById('txt-tools').innerText = dict.toolsBtn;
+            document.getElementById('track-title').innerText = dict.noTracks;
+            document.getElementById('track-counter').innerText = `0 ${dict.filesCount}`;
+            document.getElementById('btn-upload-audio').title = dict.uploadTitle;
+        }
+
+        applyInheritedSettings();
+
+        // =====================================================================
+        // 2. MINI REPRODUCTOR DE MÚSICA LOCAL (HTML5 Audio + ObjectURL)
+        // =====================================================================
+        const audioPlayer = new Audio();
+        let playlist = [];
+        let currentTrackIndex = 0;
+        let isPlaying = false;
+
+        const uploadInput = document.getElementById('audio-upload');
+        const trackTitleEl = document.getElementById('track-title');
+        const trackCounterEl = document.getElementById('track-counter');
+        const playPauseBtn = document.getElementById('btn-play-pause');
+        const nextTrackBtn = document.getElementById('btn-next-track');
+        const volumeSlider = document.getElementById('volume-control');
+
+        audioPlayer.volume = parseFloat(volumeSlider.value);
+
+        uploadInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            if (!files.length) return;
+
+            // Liberar URLs anteriores de memoria
+            playlist.forEach(item => URL.revokeObjectURL(item.url));
+
+            playlist = files.map(file => ({
+                name: file.name.replace(/\.[^/.]+$/, ""), // Quitar extensión
+                url: URL.createObjectURL(file)
+            }));
+
+            currentTrackIndex = 0;
+            playPauseBtn.disabled = false;
+            nextTrackBtn.disabled = playlist.length <= 1;
+
+            updatePlaylistCounter();
+            loadAndPlayTrack(0);
+        });
+
+        function updatePlaylistCounter() {
+            const dict = i18n[currentLang];
+            const label = playlist.length === 1 ? dict.fileCount : dict.filesCount;
+            trackCounterEl.innerText = `${currentTrackIndex + 1}/${playlist.length} ${label}`;
+        }
+
+        function loadAndPlayTrack(index) {
+            if (!playlist[index]) return;
+            currentTrackIndex = index;
+            audioPlayer.src = playlist[index].url;
+            trackTitleEl.innerText = playlist[index].name;
+            updatePlaylistCounter();
+
+            audioPlayer.play().then(() => {
+                isPlaying = true;
+                updatePlayPauseIcon();
+            }).catch(err => console.warn("Reproducción bloqueada:", err));
+        }
+
+        window.togglePlayPause = () => {
+            if (!playlist.length) return;
+            if (isPlaying) {
+                audioPlayer.pause();
+                isPlaying = false;
+            } else {
+                audioPlayer.play();
+                isPlaying = true;
+            }
+            updatePlayPauseIcon();
+        };
+
+        window.nextTrack = () => {
+            if (playlist.length <= 1) return;
+            const nextIdx = (currentTrackIndex + 1) % playlist.length;
+            loadAndPlayTrack(nextIdx);
+        };
+
+        // Pasar automáticamente a la siguiente canción al terminar
+        audioPlayer.addEventListener('ended', () => {
+            if (playlist.length > 1) {
+                window.nextTrack();
+            } else {
+                audioPlayer.currentTime = 0;
+                audioPlayer.play();
+            }
+        });
+
+        volumeSlider.addEventListener('input', (e) => {
+            audioPlayer.volume = parseFloat(e.target.value);
+        });
+
+        function updatePlayPauseIcon() {
+            const icon = document.getElementById('play-pause-icon');
+            if (!icon) return;
+            icon.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // =====================================================================
+        // 3. ANIMACIÓN AMBIENTAL DE LLUVIA (Sincronizada con el reproductor)
+        // =====================================================================
+        const canvas = document.getElementById('rain-canvas');
+        const ctx = canvas.getContext('2d');
+        let drops = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Drop {
+            constructor() { this.init(); }
+            init() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * -canvas.height;
+                const vol = parseFloat(volumeSlider.value);
+                this.speed = (Math.random() * 5 + 8) * (vol + 0.3);
+                this.len = (Math.random() * 10 + 10) * (vol + 0.3);
+                this.opacity = Math.random() * 0.3 + 0.1;
+            }
+            update() {
+                this.y += this.speed;
+                if (this.y > canvas.height) this.init();
+            }
+            draw() {
+                const isDark = document.documentElement.classList.contains('dark');
+                ctx.strokeStyle = isDark 
+                    ? `rgba(165, 180, 252, ${this.opacity})` 
+                    : `rgba(79, 70, 229, ${this.opacity * 0.8})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x, this.y + this.len);
+                ctx.stroke();
+            }
+        }
+
+        for (let i = 0; i < 120; i++) drops.push(new Drop());
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (isPlaying) {
+                drops.forEach(drop => {
+                    drop.update();
+                    drop.draw();
+                });
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // =====================================================================
+        // 4. FIREBASE CONFIG Y LÓGICA DEL CRONÓMETRO
+        // =====================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyD5nMXGPuYDLspZGAkS1nE3XSF6RvMaVdw",
+            authDomain: "focusrusherv4.firebaseapp.com",
+            projectId: "focusrusherv4",
+            storageBucket: "focusrusherv4.firebasestorage.app",
+            messagingSenderId: "821506625432",
+            appId: "1:821506625432:web:f5428274eb45561c2be5ed"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'focus-rusher-pwa';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const minsParam = parseInt(urlParams.get('minutes')) || parseInt(urlParams.get('mins')) || 30;
+        let timeLeft = minsParam * 60;
+        let timerInterval = null;
+        let isActive = true;
+        let currentUser = null;
+        let schoolId = null;
+
+        // Mostrar tiempo inicial inmediatamente
+        const initM = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+        const initS = (timeLeft % 60).toString().padStart(2, '0');
+        document.getElementById('time-display').textContent = `${initM}:${initS}`;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                try {
+                    const savedSession = JSON.parse(sessionStorage.getItem('school_user_session') || localStorage.getItem('school_user_session') || '{}');
+                    schoolId = savedSession.schoolId;
+                } catch (e) {}
+
+                if (!schoolId) schoolId = "default-school";
+                startTimer();
+            } else {
+                window.location.href = "index.html";
+            }
+        });
+
+        async function saveSessionToFirestore(status) {
+            if (!currentUser || !schoolId) return;
+            const totalHours = minsParam / 60;
+            const pointsEarned = status === 'completed' ? minsParam * 5 : 0;
+            const sessionDurationHours = status === 'completed' ? totalHours : (minsParam * 60 - timeLeft) / 3600;
+
+            try {
+                const userDocRef = doc(db, 'artifacts', appId, 'schools', schoolId, 'users', currentUser.uid);
+                const userSnap = await getDoc(userDocRef);
+                
+                let currentLives = 3;
+                if (userSnap.exists()) {
+                    currentLives = userSnap.data().lives ?? 3;
+                }
+
+                let newLives = status === 'completed' ? currentLives : Math.max(0, currentLives - 1);
+                if (newLives > 3) newLives = 3;
+
+                // Detectar si las vidas pasaron de un valor positivo a 0 en esta sesión fallida
+                const reachedZero = (currentLives > 0 && newLives === 0);
+
+                await addDoc(collection(db, 'artifacts', appId, 'schools', schoolId, 'users', currentUser.uid, 'sessions'), {
+                    durationMinutes: minsParam, 
+                    status, 
+                    points: pointsEarned, 
+                    date: serverTimestamp()
+                });
+
+                const userUpdatePayload = {
+                    points: increment(pointsEarned),
+                    totalHours: increment(sessionDurationHours),
+                    completedSessions: increment(status === 'completed' ? 1 : 0),
+                    failedSessions: increment(status === 'failed' ? 1 : 0),
+                    lives: newLives,
+                    lastSessionDate: serverTimestamp()
+                };
+
+                // ¡AQUÍ ESTÁ LA SOLUCIÓN! Si las vidas llegaron a 0, sumamos 1 a deaths aquí mismo
+                if (reachedZero) {
+                    userUpdatePayload.deaths = increment(1);
+                }
+
+                await setDoc(userDocRef, userUpdatePayload, { merge: true });
+
+            } catch (error) { 
+                console.error("Error al guardar métricas en Firestore:", error); 
+            }
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (isActive) {
+                    if (timeLeft > 0) {
+                        timeLeft--;
+                        const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+                        const s = (timeLeft % 60).toString().padStart(2, '0');
+                        document.getElementById('time-display').textContent = `${m}:${s}`;
+                    } else { 
+                        completeSession(); 
+                    }
+                }
+            }, 1000);
+        }
+
+        window.completeSession = async () => {
+            if (!isActive) return;
+            isActive = false;
+            clearInterval(timerInterval);
+            audioPlayer.pause();
+            isPlaying = false;
+            document.getElementById('status-text').innerHTML = `<span class='text-emerald-500 dark:text-emerald-400'>${i18n[currentLang].completedSession}</span>`;
+            await saveSessionToFirestore('completed');
+            showFinishUI();
+        };
+
+        window.failSession = async () => {
+            if (!isActive) return;
+            isActive = false;
+            clearInterval(timerInterval);
+            audioPlayer.pause();
+            isPlaying = false;
+            document.body.classList.add('failed');
+            document.getElementById('status-text').textContent = i18n[currentLang].failedSession;
+            await saveSessionToFirestore('failed');
+            showFinishUI();
+        };
+
+        function showFinishUI() {
+            document.getElementById('return-container').style.display = 'block';
+            document.getElementById('tools-trigger').style.display = 'none';
+            document.getElementById('music-player').style.display = 'none';
+        }
+
+        window.goBack = () => window.location.href = 'home.html';
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden' && isActive) failSession();
+        });
+
+        window.toggleTools = () => {
+            document.getElementById('tools-panel').classList.toggle('open');
+            document.getElementById('panel-overlay').classList.toggle('active');
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

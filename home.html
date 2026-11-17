@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Focus Rusher - Campus</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <style>
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #64748b; border-radius: 9999px; }
+    .touch-action-manipulation { touch-action: manipulation; }
+    
+    /* Transición suave para iframes */
+    .tab-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+    }
+
+    /* Animaciones para el modal de racha y popover de cuenta */
+    @keyframes flameFloat {
+      0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.45)); }
+      50% { transform: translateY(-6px) scale(1.08); filter: drop-shadow(0 0 22px rgba(249, 115, 22, 0.75)); }
+    }
+    .animate-flame {
+      animation: flameFloat 2.2s ease-in-out infinite;
+    }
+
+    @keyframes popInOrigin {
+      0% { opacity: 0; transform: scale(0.92) translateY(-6px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .animate-popover {
+      animation: popInOrigin 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col justify-between font-sans antialiased bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200 select-none">
+
+  <!-- CONTENEDOR PRINCIPAL MÓVIL / PWA -->
+  <div id="app" class="flex-1 flex flex-col max-w-md mx-auto w-full min-h-screen max-h-screen h-full relative shadow-2xl bg-white dark:bg-slate-900 border-x border-slate-200 dark:border-slate-800 transition-colors duration-300 overflow-hidden">
+
+    <!-- NOTIFICATION TOAST -->
+    <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-sm transition-all duration-300 transform -translate-y-24 opacity-0 pointer-events-none">
+      <div id="toast-content" class="p-3.5 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-semibold border bg-slate-800 text-white border-slate-700">
+        <i id="toast-icon" data-lucide="info" class="w-4 h-4 flex-shrink-0"></i>
+        <span id="toast-message" class="flex-1"></span>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         1. BARRA SUPERIOR FIJA ("Datos Fijos" del Diagrama)
+    ====================================================================== -->
+    <header class="relative flex-shrink-0 bg-white/80 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 z-30">
+      <!-- Fila Principal: Avatar Inicial (Izq) | Puntaje + Racha (Der) -->
+      <div class="flex items-center justify-between px-4 py-2.5">
+        
+        <!-- Contenedor Relativo del Botón de Cuenta + Menú Desplegable estilo Google -->
+        <div class="relative" id="account-dropdown-wrapper">
+          <button onclick="toggleAccountModal(event)" id="btn-account" class="group relative flex items-center gap-2.5 focus:outline-none active:scale-95 transition-transform" title="Cuenta Institucional">
+            <div id="avatar-ring" class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 shadow-md shadow-indigo-500/20 flex items-center justify-center transition-all duration-300">
+              <span id="user-initial" class="text-base font-black text-white uppercase">?</span>
+            </div>
+            <div class="text-left hidden xs:block">
+              <p id="header-school-badge" class="text-[10px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500 font-mono">CARGANDO...</p>
+              <p class="text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors" data-i18n="myAccount">Mi Cuenta</p>
+            </div>
+          </button>
+
+          <!-- POPOVER DE CUENTA PEGADO AL BOTÓN (ESTILO GOOGLE) -->
+          <div id="account-modal" class="hidden origin-top-left absolute left-0 top-12 w-72 sm:w-80 z-50 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700/90 rounded-3xl p-4 shadow-2xl shadow-slate-950/25 space-y-3.5 animate-popover">
+            
+            <!-- Cabecera Perfil -->
+            <div class="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div id="modal-avatar-circle" class="w-11 h-11 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-lg uppercase shadow-md flex-shrink-0 transition-colors">
+                <span id="modal-user-initial">?</span>
+              </div>
+              <div class="overflow-hidden flex-1">
+                <p id="modal-user-email" class="text-xs font-bold text-slate-900 dark:text-white truncate">usuario@escuela.edu</p>
+                <span id="modal-school-id" class="inline-block text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 uppercase mt-0.5">ESCUELA</span>
+              </div>
+            </div>
+
+            <!-- Selector de 5 Colores de Tema -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500" data-i18n="accentColorLabel">Color de Acento</span>
+                <span id="current-color-name" class="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Índigo</span>
+              </div>
+              <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/70 p-2 rounded-2xl border border-slate-200/70 dark:border-slate-700/60">
+                <button onclick="setAccentColor('indigo')" data-color="indigo" class="color-swatch w-7 h-7 rounded-full bg-indigo-600 ring-2 ring-offset-2 ring-indigo-600 dark:ring-offset-slate-900 transition-transform active:scale-90" title="Índigo"></button>
+                <button onclick="setAccentColor('emerald')" data-color="emerald" class="color-swatch w-7 h-7 rounded-full bg-emerald-600 ring-offset-2 dark:ring-offset-slate-900 transition-transform active:scale-90" title="Esmeralda"></button>
+                <button onclick="setAccentColor('rose')" data-color="rose" class="color-swatch w-7 h-7 rounded-full bg-rose-600 ring-offset-2 dark:ring-offset-slate-900 transition-transform active:scale-90" title="Rosa"></button>
+                <button onclick="setAccentColor('amber')" data-color="amber" class="color-swatch w-7 h-7 rounded-full bg-amber-500 ring-offset-2 dark:ring-offset-slate-900 transition-transform active:scale-90" title="Ámbar"></button>
+                <button onclick="setAccentColor('cyan')" data-color="cyan" class="color-swatch w-7 h-7 rounded-full bg-cyan-600 ring-offset-2 dark:ring-offset-slate-900 transition-transform active:scale-90" title="Cian"></button>
+              </div>
+            </div>
+
+            <!-- Botón Leaderboard (Placeholder sin redirección) -->
+            <button onclick="handleLeaderboardClick()" class="w-full py-2.5 px-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/70 flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-200 transition-all active:scale-[0.98]">
+              <span class="flex items-center gap-2.5">
+                <span id="leaderboard-icon-box" class="p-1.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                  <i data-lucide="trophy" class="w-4 h-4"></i>
+                </span>
+                <span data-i18n="leaderboardBtn">Leaderboard</span>
+              </span>
+              <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+            </button>
+
+            <!-- Controles Rápidos: Modo Oscuro/Claro e Idioma -->
+            <div class="flex items-center justify-between gap-2">
+              <button onclick="toggleTheme()" class="flex-1 py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors">
+                <i id="theme-icon" data-lucide="moon" class="w-3.5 h-3.5 text-slate-600 dark:text-slate-300"></i>
+                <span data-i18n="switchTheme">Tema</span>
+              </button>
+              <button onclick="toggleLanguage()" class="flex-1 py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors">
+                <i data-lucide="languages" class="w-3.5 h-3.5 text-slate-600 dark:text-slate-300"></i>
+                <span id="lang-label">ES</span>
+              </button>
+            </div>
+
+            <!-- Leyenda: Reinicia la página para ver los cambios -->
+            <p class="text-[11px] text-center text-slate-400 dark:text-slate-500 italic pt-1" data-i18n="restartNotice">
+              Reinicia la página para ver los cambios
+            </p>
+
+            <!-- Botón Cerrar Sesión -->
+            <button onclick="logout()" class="w-full py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white text-xs font-bold shadow-md shadow-rose-600/20 flex items-center justify-center gap-2 transition-all">
+              <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+              <span data-i18n="btnLogout">Cerrar Sesión</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Contadores Derechos: Puntaje (OP) y Racha (Fuego interactivo) -->
+        <div class="flex items-center gap-2">
+          <!-- Pill 1: Puntaje -->
+          <div id="points-pill" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/60 shadow-sm transition-colors" title="Puntaje Total">
+            <i id="points-icon" data-lucide="zap" class="w-4 h-4 text-indigo-600 dark:text-indigo-400 fill-indigo-600/20"></i>
+            <span id="stat-points" class="text-xs font-black font-mono text-indigo-900 dark:text-indigo-200">0</span>
+            <span id="points-unit" class="text-[10px] font-bold text-indigo-500 dark:text-indigo-400">PTS</span>
+          </div>
+
+          <!-- Pill 2: Racha (Abre Modal Animado de Racha) -->
+          <button onclick="openStreakModal()" id="streak-badge" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200/80 dark:border-amber-800/60 shadow-sm hover:scale-105 active:scale-95 transition-transform cursor-pointer" title="Ver detalles de racha">
+            <i data-lucide="flame" class="w-4 h-4 text-amber-500 fill-amber-500/30"></i>
+            <span id="stat-streak" class="text-xs font-black font-mono text-amber-900 dark:text-amber-200">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Fila Secundaria: 3 Vidas ("Salud" del Diagrama) -->
+      <div class="flex items-center justify-between px-4 py-1.5 bg-slate-50/90 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800/80">
+        <div class="flex items-center gap-2">
+          <div id="lives-container" class="flex items-center gap-1">
+            <!-- Corazones renderizados dinámicamente (3 por defecto) -->
+            <i data-lucide="heart" class="w-4 h-4 text-rose-500 fill-rose-500 transition-transform duration-300"></i>
+            <i data-lucide="heart" class="w-4 h-4 text-rose-500 fill-rose-500 transition-transform duration-300"></i>
+            <i data-lucide="heart" class="w-4 h-4 text-rose-500 fill-rose-500 transition-transform duration-300"></i>
+          </div>
+          <span data-i18n="healthLabel" class="text-[11px] font-bold tracking-wide text-slate-600 dark:text-slate-300">Salud</span>
+        </div>
+
+        <span id="lives-counter-text" class="text-[10px] font-mono font-semibold text-slate-400 dark:text-slate-500">3 / 3</span>
+      </div>
+    </header>
+
+    <!-- =====================================================================
+         2. CONTENEDOR CENTRAL CON IFRAMES ("Otra página, mostrada mediante un embed")
+    ====================================================================== -->
+    <main class="flex-1 relative w-full overflow-hidden bg-slate-50/50 dark:bg-slate-950/40">
+      
+      <!-- Pantalla de Carga Inicial mientras valida Firebase Auth -->
+      <div id="loading-overlay" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white dark:bg-slate-900 transition-opacity duration-300">
+        <div class="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 animate-pulse" data-i18n="verifyingSession">Sincronizando campus...</p>
+      </div>
+
+      <!-- IFRAME IZQUIERDA: COMUNIDAD (Vacío / listo para incrustar comunidad.html) -->
+      <div id="frame-container-comunidad" class="hidden w-full h-full">
+        <iframe 
+          id="iframe-comunidad" 
+          src="about:blank" 
+          data-src="comunidad.html"
+          title="Comunidad"
+          class="tab-iframe"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-downloads">
+        </iframe>
+      </div>
+
+      <!-- IFRAME CENTRAL: HOME / INICIO (Activo por defecto, listo para incrustar inicio.html) -->
+      <div id="frame-container-home" class="w-full h-full">
+        <iframe 
+          id="iframe-home" 
+          src="about:blank" 
+          data-src="inicio.html"
+          title="Inicio Focus Rusher"
+          class="tab-iframe"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-same-origin allow-top-navigation">
+        </iframe>
+      </div>
+
+      <!-- IFRAME DERECHA: ESTADÍSTICAS / MÉTRICAS (Vacío / listo para incrustar estadisticas.html) -->
+      <div id="frame-container-estadisticas" class="hidden w-full h-full">
+        <iframe 
+          id="iframe-estadisticas" 
+          src="about:blank" 
+          data-src="estadisticas.html"
+          title="Estadísticas"
+          class="tab-iframe"
+          sandbox="allow-scripts allow-same-origin allow-forms">
+        </iframe>
+      </div>
+
+    </main>
+
+    <!-- =====================================================================
+         3. MENÚ INFERIOR FIJO (3 Pestañas: Comunidad | Inicio | Estadísticas)
+    ====================================================================== -->
+    <nav class="flex-shrink-0 bg-white/90 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-2 py-1.5 z-30">
+      <div class="grid grid-cols-3 gap-1 items-center">
+        
+        <!-- Pestaña Izquierda: Comunidad -->
+        <button onclick="switchTab('comunidad')" id="nav-btn-comunidad" class="nav-item flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all active:scale-95 relative">
+          <div class="nav-indicator hidden absolute top-0 w-8 h-1 rounded-b-full bg-indigo-600 dark:bg-indigo-400"></div>
+          <i data-lucide="users" class="w-5 h-5 mb-0.5 transition-transform"></i>
+          <span data-i18n="navCommunity" class="text-[11px] font-semibold">Comunidad</span>
+        </button>
+
+        <!-- Pestaña Central: Home / Inicio -->
+        <button onclick="switchTab('home')" id="nav-btn-home" class="nav-item flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 transition-all active:scale-95 relative">
+          <div class="nav-indicator absolute top-0 w-10 h-1 rounded-b-full bg-indigo-600 dark:bg-indigo-400"></div>
+          <i data-lucide="home" class="w-5 h-5 mb-0.5 transition-transform"></i>
+          <span data-i18n="navHome" class="text-[11px] font-bold">Inicio</span>
+        </button>
+
+        <!-- Pestaña Derecha: Estadísticas / Métricas -->
+        <button onclick="switchTab('estadisticas')" id="nav-btn-estadisticas" class="nav-item flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all active:scale-95 relative">
+          <div class="nav-indicator hidden absolute top-0 w-8 h-1 rounded-b-full bg-indigo-600 dark:bg-indigo-400"></div>
+          <i data-lucide="bar-chart-2" class="w-5 h-5 mb-0.5 transition-transform"></i>
+          <span data-i18n="navStats" class="text-[11px] font-semibold">Estadísticas</span>
+        </button>
+
+      </div>
+    </nav>
+
+    <!-- =====================================================================
+         4. MODAL ANIMADO DE RACHA (Al tocar la píldora de racha)
+    ====================================================================== -->
+    <div id="streak-modal" onclick="closeStreakModal(event)" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 backdrop-blur-sm p-5 transition-opacity">
+      <div onclick="event.stopPropagation()" class="w-full max-w-xs bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-amber-500/30 rounded-3xl p-6 shadow-2xl text-center space-y-5 relative overflow-hidden animate-popover">
+        
+        <!-- Resplandor ambiental superior -->
+        <div class="absolute -top-14 left-1/2 -translate-x-1/2 w-44 h-44 bg-amber-500/20 dark:bg-amber-500/15 rounded-full blur-2xl pointer-events-none"></div>
+
+        <!-- Botón Cerrar -->
+        <button onclick="closeStreakModal()" class="absolute top-3.5 right-3.5 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Icono de Llama Animada -->
+        <div class="relative mx-auto w-24 h-24 rounded-full bg-gradient-to-b from-amber-100 to-orange-100 dark:from-amber-500/20 dark:to-orange-600/10 border border-amber-300/70 dark:border-amber-500/30 flex items-center justify-center shadow-inner">
+          <div class="absolute inset-0 rounded-full bg-amber-400/20 animate-ping" style="animation-duration: 2.8s;"></div>
+          <i data-lucide="flame" class="w-12 h-12 text-amber-500 fill-amber-500 animate-flame"></i>
+        </div>
+
+        <!-- Contador Animado de Días -->
+        <div class="space-y-1">
+          <div class="flex items-baseline justify-center gap-1.5">
+            <span id="streak-modal-number" class="text-5xl font-black font-mono tracking-tight bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">0</span>
+            <span id="streak-modal-days-label" class="text-base font-extrabold text-amber-600 dark:text-amber-400 uppercase" data-i18n="streakDaysUnit">días</span>
+          </div>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white" data-i18n="streakModalTitle">¡Racha Imparable!</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed px-2" data-i18n="streakModalDesc">
+            Llevas esta cantidad de días seguidos entrando a estudiar. ¡Vuelve mañana para mantener el fuego encendido!
+          </p>
+        </div>
+
+        <!-- Mini Indicador Semanal Visual -->
+        <div class="flex items-center justify-center gap-1.5 pt-1">
+          <span class="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold shadow-sm"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+          <span class="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold shadow-sm"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+          <span class="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold shadow-sm"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+          <span class="w-6 h-6 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-600 dark:text-amber-400 flex items-center justify-center text-[10px] font-bold"><i data-lucide="flame" class="w-3 h-3"></i></span>
+          <span class="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center text-[10px] font-bold">•</span>
+        </div>
+
+        <button onclick="closeStreakModal()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-[0.98] text-white text-xs font-extrabold shadow-lg shadow-amber-500/30 transition-all" data-i18n="streakAwesomeBtn">
+          ¡Seguir así!
+        </button>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         5. MODAL DE MASCOTA PERDIDA (Se muestra cuando las vidas llegan a 0)
+    ====================================================================== -->
+    <div id="pet-lost-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-5 transition-opacity">
+      <div class="w-full max-w-xs bg-white dark:bg-slate-900 border border-rose-500/30 rounded-3xl p-6 shadow-2xl text-center space-y-5 relative overflow-hidden animate-popover">
+        
+        <!-- Resplandor ambiental de alerta -->
+        <div class="absolute -top-14 left-1/2 -translate-x-1/2 w-44 h-44 bg-rose-500/20 rounded-full blur-2xl pointer-events-none"></div>
+
+        <!-- Icono de Calavera / Alerta -->
+        <div class="relative mx-auto w-20 h-20 rounded-full bg-rose-100 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-rose-500 shadow-inner">
+          <i data-lucide="skull" class="w-10 h-10"></i>
+        </div>
+
+        <!-- Textos explicativos -->
+        <div class="space-y-2">
+          <h3 class="text-lg font-black text-slate-900 dark:text-white">¡Has perdido a tu mascota!</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            Tu mascota se ha quedado sin salud y ha caído rendida. Tendrás que empezar de nuevo para cuidarla otra vez.
+          </p>
+        </div>
+
+        <!-- Botón Empezar de 0 -->
+        <button onclick="resetPetAndStats()" class="w-full py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white text-xs font-extrabold shadow-lg shadow-rose-600/30 transition-all">
+          Empezar de 0
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =====================================================================
+       SCRIPTS BASE: TEMA, COLORES DE ACENTO, IDIOMA Y NAVEGACIÓN
+  ====================================================================== -->
+  <script>
+    window.appState = {
+      session: null,
+      userData: {
+        points: 0,
+        streak: 0,
+        lives: 3,
+        lastActiveDate: null
+      },
+      activeTab: 'home',
+      theme: 'auto',
+      accentColor: 'indigo',
+      lang: 'auto',
+      unsubscribeUser: null
+    };
+
+    // Paleta de 5 Colores Configurables
+    window.ACCENT_THEMES = {
+      indigo: {
+        nameEs: 'Índigo', nameEn: 'Indigo',
+        ringGrad: 'from-indigo-600 to-violet-500 shadow-indigo-500/20',
+        textMain: 'text-indigo-600 dark:text-indigo-400',
+        bgSolid: 'bg-indigo-600',
+        bgSoft: 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200/80 dark:border-indigo-800/60',
+        textPill: 'text-indigo-900 dark:text-indigo-200',
+        navActive: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40',
+        navBar: 'bg-indigo-600 dark:bg-indigo-400',
+        swatchRing: 'ring-indigo-600'
+      },
+      emerald: {
+        nameEs: 'Esmeralda', nameEn: 'Emerald',
+        ringGrad: 'from-emerald-600 to-teal-500 shadow-emerald-500/20',
+        textMain: 'text-emerald-600 dark:text-emerald-400',
+        bgSolid: 'bg-emerald-600',
+        bgSoft: 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200/80 dark:border-emerald-800/60',
+        textPill: 'text-emerald-900 dark:text-emerald-200',
+        navActive: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/40',
+        navBar: 'bg-emerald-600 dark:bg-emerald-400',
+        swatchRing: 'ring-emerald-600'
+      },
+      rose: {
+        nameEs: 'Rosa', nameEn: 'Rose',
+        ringGrad: 'from-rose-600 to-pink-500 shadow-rose-500/20',
+        textMain: 'text-rose-600 dark:text-rose-400',
+        bgSolid: 'bg-rose-600',
+        bgSoft: 'bg-rose-50 dark:bg-rose-950/60 border-rose-200/80 dark:border-rose-800/60',
+        textPill: 'text-rose-900 dark:text-rose-200',
+        navActive: 'text-rose-600 dark:text-rose-400 bg-rose-50/80 dark:bg-rose-950/40',
+        navBar: 'bg-rose-600 dark:bg-rose-400',
+        swatchRing: 'ring-rose-600'
+      },
+      amber: {
+        nameEs: 'Ámbar', nameEn: 'Amber',
+        ringGrad: 'from-amber-500 to-orange-500 shadow-amber-500/20',
+        textMain: 'text-amber-600 dark:text-amber-400',
+        bgSolid: 'bg-amber-500',
+        bgSoft: 'bg-amber-50 dark:bg-amber-950/60 border-amber-200/80 dark:border-amber-800/60',
+        textPill: 'text-amber-900 dark:text-amber-200',
+        navActive: 'text-amber-600 dark:text-amber-400 bg-amber-50/80 dark:bg-amber-950/40',
+        navBar: 'bg-amber-500 dark:bg-amber-400',
+        swatchRing: 'ring-amber-500'
+      },
+      cyan: {
+        nameEs: 'Cian', nameEn: 'Cyan',
+        ringGrad: 'from-cyan-600 to-sky-500 shadow-cyan-500/20',
+        textMain: 'text-cyan-600 dark:text-cyan-400',
+        bgSolid: 'bg-cyan-600',
+        bgSoft: 'bg-cyan-50 dark:bg-cyan-950/60 border-cyan-200/80 dark:border-cyan-800/60',
+        textPill: 'text-cyan-900 dark:text-cyan-200',
+        navActive: 'text-cyan-600 dark:text-cyan-400 bg-cyan-50/80 dark:bg-cyan-950/40',
+        navBar: 'bg-cyan-600 dark:bg-cyan-400',
+        swatchRing: 'ring-cyan-600'
+      }
+    };
+
+    window.translations = {
+      es: {
+        myAccount: "Mi Cuenta",
+        healthLabel: "Salud",
+        verifyingSession: "Sincronizando campus...",
+        navCommunity: "Comunidad",
+        navHome: "Inicio",
+        navStats: "Estadísticas",
+        accentColorLabel: "Color de Acento",
+        leaderboardBtn: "Leaderboard",
+        switchTheme: "Tema",
+        btnLogout: "Cerrar Sesión",
+        streakDaysUnit: "días",
+        streakDayUnit: "día",
+        streakModalTitle: "¡Racha Imparable!",
+        streakModalDesc: "Llevas esta cantidad de días seguidos entrando a estudiar. ¡Vuelve mañana para mantener el fuego encendido!",
+        streakAwesomeBtn: "¡Seguir así!",
+        restartNotice: "Reinicia la página para ver los cambios"
+      },
+      en: {
+        myAccount: "My Account",
+        healthLabel: "Health",
+        verifyingSession: "Syncing campus...",
+        navCommunity: "Community",
+        navHome: "Home",
+        navStats: "Statistics",
+        accentColorLabel: "Accent Color",
+        leaderboardBtn: "Leaderboard",
+        switchTheme: "Theme",
+        btnLogout: "Log Out",
+        streakDaysUnit: "days",
+        streakDayUnit: "day",
+        streakModalTitle: "Unstoppable Streak!",
+        streakModalDesc: "You've logged in to study this many days in a row. Come back tomorrow to keep the flame alive!",
+        streakAwesomeBtn: "Keep it up!",
+        restartNotice: "Restart the page to see changes"
+      }
+    };
+
+    // Aplicar Color de Acento elegido (entre los 5 disponibles)
+    window.setAccentColor = function(colorKey) {
+      const themeObj = window.ACCENT_THEMES[colorKey] || window.ACCENT_THEMES.indigo;
+      window.appState.accentColor = colorKey;
+      localStorage.setItem('accentColor', colorKey);
+
+      // Actualizar anillo de avatar y avatar del popover
+      const avatarRing = document.getElementById('avatar-ring');
+      if (avatarRing) avatarRing.className = `w-10 h-10 rounded-full bg-gradient-to-tr ${themeObj.ringGrad} shadow-md flex items-center justify-center transition-all duration-300`;
+
+      const userInitial = document.getElementById('user-initial');
+      if (userInitial) userInitial.className = `text-base font-black text-white uppercase transition-colors`;
+
+      const modalAvatar = document.getElementById('modal-avatar-circle');
+      if (modalAvatar) modalAvatar.className = `w-11 h-11 rounded-full ${themeObj.bgSolid} text-white flex items-center justify-center font-black text-lg uppercase shadow-md flex-shrink-0 transition-colors`;
+
+      const lbIcon = document.getElementById('leaderboard-icon-box');
+      if (lbIcon) lbIcon.className = `p-1.5 rounded-xl bg-slate-200/60 dark:bg-slate-700/60 ${themeObj.textMain}`;
+
+      // Actualizar píldora de puntaje
+      const pointsPill = document.getElementById('points-pill');
+      if (pointsPill) pointsPill.className = `flex items-center gap-1.5 px-3 py-1.5 rounded-full border shadow-sm transition-colors ${themeObj.bgSoft}`;
+
+      const pointsIcon = document.getElementById('points-icon');
+      if (pointsIcon) pointsIcon.setAttribute('class', `w-4 h-4 ${themeObj.textMain}`);
+
+      const statPoints = document.getElementById('stat-points');
+      if (statPoints) statPoints.className = `text-xs font-black font-mono ${themeObj.textPill}`;
+
+      const pointsUnit = document.getElementById('points-unit');
+      if (pointsUnit) pointsUnit.className = `text-[10px] font-bold ${themeObj.textMain}`;
+
+      // Actualizar nombre del color y anillo de selección
+      const colorNameLabel = document.getElementById('current-color-name');
+      if (colorNameLabel) {
+        colorNameLabel.innerText = window.appState.lang === 'en' ? themeObj.nameEn : themeObj.nameEs;
+      }
+
+      document.querySelectorAll('.color-swatch').forEach(btn => {
+        const key = btn.getAttribute('data-color');
+        const swatchTheme = window.ACCENT_THEMES[key];
+        btn.classList.remove('ring-2', 'ring-indigo-600', 'ring-emerald-600', 'ring-rose-600', 'ring-amber-500', 'ring-cyan-600', 'scale-110');
+        if (key === colorKey && swatchTheme) {
+          btn.classList.add('ring-2', swatchTheme.swatchRing, 'scale-110');
+        }
+      });
+
+      // Re-aplicar color a la pestaña activa inferior
+      if (window.appState.activeTab) {
+        switchTab(window.appState.activeTab, true);
+      }
+    };
+
+    window.initAccentColor = function() {
+      const savedColor = localStorage.getItem('accentColor');
+      setAccentColor(savedColor && window.ACCENT_THEMES[savedColor] ? savedColor : 'indigo');
+    };
+
+    // Botón Leaderboard (Placeholder sin redirección)
+    window.handleLeaderboardClick = function() {
+      toggleAccountModal();
+      window.location.href="leaderboard.html"
+    };
+
+    // Gestión de Tema Oscuro / Claro
+    window.setTheme = function(theme) {
+      window.appState.theme = theme;
+      localStorage.setItem('theme', theme);
+      const htmlEl = document.documentElement;
+      const icon = document.getElementById('theme-icon');
+      if (theme === 'dark') {
+        htmlEl.classList.add('dark');
+        if (icon) icon.setAttribute('data-lucide', 'sun');
+      } else {
+        htmlEl.classList.remove('dark');
+        if (icon) icon.setAttribute('data-lucide', 'moon');
+      }
+      if (window.lucide) lucide.createIcons();
+    };
+
+    window.initTheme = function() {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        setTheme(savedTheme);
+      } else {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setTheme(prefersDark ? 'dark' : 'light');
+      }
+    };
+
+    window.toggleTheme = function() {
+      setTheme(window.appState.theme === 'dark' ? 'light' : 'dark');
+    };
+
+    // Gestión de Idioma
+    window.setLanguage = function(lang) {
+      window.appState.lang = lang;
+      localStorage.setItem('lang', lang);
+      const label = document.getElementById('lang-label');
+      if (label) label.innerText = lang.toUpperCase();
+      const dict = window.translations[lang];
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict && dict[key]) {
+          el.innerText = dict[key];
+        }
+      });
+
+      // Actualizar nombre del color actual al cambiar idioma
+      const themeObj = window.ACCENT_THEMES[window.appState.accentColor];
+      const colorNameLabel = document.getElementById('current-color-name');
+      if (themeObj && colorNameLabel) {
+        colorNameLabel.innerText = lang === 'en' ? themeObj.nameEn : themeObj.nameEs;
+      }
+    };
+
+    window.initLanguage = function() {
+      const savedLang = localStorage.getItem('lang');
+      if (savedLang) {
+        setLanguage(savedLang);
+      } else {
+        const userLang = navigator.language || navigator.userLanguage;
+        setLanguage(userLang && userLang.startsWith('es') ? 'es' : 'en');
+      }
+    };
+
+    window.toggleLanguage = function() {
+      setLanguage(window.appState.lang === 'es' ? 'en' : 'es');
+    };
+
+    // Intercambio entre las 3 pestañas e Iframes
+    window.switchTab = function(tabName, skipIframeReload = false) {
+      const tabs = ['comunidad', 'home', 'estadisticas'];
+      if (!tabs.includes(tabName)) return;
+
+      window.appState.activeTab = tabName;
+      const themeObj = window.ACCENT_THEMES[window.appState.accentColor] || window.ACCENT_THEMES.indigo;
+
+      tabs.forEach(t => {
+        const container = document.getElementById(`frame-container-${t}`);
+        const btn = document.getElementById(`nav-btn-${t}`);
+        const indicator = btn.querySelector('.nav-indicator');
+        const label = btn.querySelector('span');
+
+        if (t === tabName) {
+          container.classList.remove('hidden');
+          btn.className = `nav-item flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl ${themeObj.navActive} transition-all active:scale-95 relative`;
+          if (indicator) {
+            indicator.className = `nav-indicator absolute top-0 w-9 h-1 rounded-b-full ${themeObj.navBar}`;
+          }
+          if (label) {
+            label.classList.remove('font-semibold');
+            label.classList.add('font-bold');
+          }
+
+          if (!skipIframeReload) {
+            const iframe = document.getElementById(`iframe-${t}`);
+            if (iframe && iframe.getAttribute('src') === 'about:blank') {
+              const targetSrc = iframe.getAttribute('data-src');
+              if (targetSrc) {
+                fetch(targetSrc, { method: 'HEAD' })
+                  .then(res => {
+                    if (res.ok) iframe.src = targetSrc;
+                  })
+                  .catch(() => {});
+              }
+            }
+          }
+        } else {
+          container.classList.add('hidden');
+          btn.className = "nav-item flex flex-col items-center justify-center py-1.5 px-2 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all active:scale-95 relative";
+          if (indicator) indicator.classList.add('hidden');
+          if (label) {
+            label.classList.remove('font-bold');
+            label.classList.add('font-semibold');
+          }
+        }
+      });
+    };
+
+    // Popover de Cuenta estilo Google + Cierre al hacer clic fuera
+    window.toggleAccountModal = function(e) {
+      if (e) e.stopPropagation();
+      const modal = document.getElementById('account-modal');
+      modal.classList.toggle('hidden');
+      if (window.lucide) lucide.createIcons();
+    };
+
+    document.addEventListener('click', (e) => {
+      const wrapper = document.getElementById('account-dropdown-wrapper');
+      const modal = document.getElementById('account-modal');
+      if (wrapper && modal && !modal.classList.contains('hidden') && !wrapper.contains(e.target)) {
+        modal.classList.add('hidden');
+      }
+    });
+
+    // Modal Animado de Racha con Conteo Progresivo
+    window.openStreakModal = function() {
+      const modal = document.getElementById('streak-modal');
+      const numEl = document.getElementById('streak-modal-number');
+      const unitEl = document.getElementById('streak-modal-days-label');
+      const targetStreak = typeof window.appState.userData?.streak === 'number' ? window.appState.userData.streak : 0;
+
+      // Ajustar singular/plural ("día" vs "días")
+      const isEn = window.appState.lang === 'en';
+      if (unitEl) {
+        unitEl.innerText = targetStreak === 1 
+          ? (isEn ? 'day' : 'día') 
+          : (isEn ? 'days' : 'días');
+      }
+
+      modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+
+      // Animación suave de conteo numérico
+      let start = 0;
+      const duration = 600;
+      const startTime = performance.now();
+
+      function animateCount(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const currentVal = Math.round(start + (targetStreak - start) * eased);
+        if (numEl) numEl.innerText = currentVal;
+        if (progress < 1) {
+          requestAnimationFrame(animateCount);
+        }
+      }
+      requestAnimationFrame(animateCount);
+    };
+
+    window.closeStreakModal = function() {
+      const modal = document.getElementById('streak-modal');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.initTheme();
+    window.initLanguage();
+    window.initAccentColor();
+  </script>
+
+  <!-- =====================================================================
+       MÓDULO FIREBASE: AUTENTICACIÓN, RACHA, PUNTAJE Y VIDAS
+  ====================================================================== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      doc, 
+      getDoc, 
+      updateDoc, 
+      onSnapshot, 
+      increment,
+      serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD5nMXGPuYDLspZGAkS1nE3XSF6RvMaVdw",
+      authDomain: "focusrusherv4.firebaseapp.com",
+      projectId: "focusrusherv4",
+      storageBucket: "focusrusherv4.firebasestorage.app",
+      messagingSenderId: "821506625432",
+      appId: "1:821506625432:web:f5428274eb45561c2be5ed"
+    };
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'focus-rusher-pwa';
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Toast Helper
+    window.showToast = function(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      const toastContent = document.getElementById('toast-content');
+      const toastMsg = document.getElementById('toast-message');
+      if (!toast || !toastMsg) return;
+
+      toastMsg.innerText = message;
+      if (type === 'error') {
+        toastContent.className = 'p-3.5 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-semibold border bg-rose-950/95 text-rose-200 border-rose-800';
+      } else if (type === 'success') {
+        toastContent.className = 'p-3.5 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-semibold border bg-emerald-950/95 text-emerald-200 border-emerald-800';
+      } else {
+        toastContent.className = 'p-3.5 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-semibold border bg-slate-800 text-white border-slate-700';
+      }
+
+      toast.classList.remove('-translate-y-24', 'opacity-0', 'pointer-events-none');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.add('-translate-y-24', 'opacity-0', 'pointer-events-none');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 3000);
+    };
+
+    // Función para reiniciar puntos y vidas al perder la mascota
+    window.resetPetAndStats = async function() {
+      const session = window.appState.session;
+      if (!session) return;
+
+      const userDocRef = doc(db, 'artifacts', appId, 'schools', session.schoolId, 'users', session.uid);
+      try {
+        await updateDoc(userDocRef, {
+          points: 0,
+          lives: 3
+        });
+        document.getElementById('pet-lost-modal').classList.add('hidden');
+        showToast("¡Progreso reiniciado! A cuidar de tu nueva mascota.", "success");
+      } catch (err) {
+        console.error("Error al reiniciar mascota:", err);
+        showToast("Error al reiniciar", "error");
+      }
+    };
+
+    // Utilidad de fechas locales (YYYY-MM-DD) para cálculo exacto de racha diaria
+    function getLocalDateString(dateObj = new Date()) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function getYesterdayDateString() {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      return getLocalDateString(yesterday);
+    }
+
+    // Lógica de Racha (Streak) e Inicialización de Variables (Puntaje y 3 Vidas)
+    async function syncUserGamificationStats(userDocRef, currentData) {
+      const todayStr = getLocalDateString();
+      const yesterdayStr = getYesterdayDateString();
+
+      const updates = {};
+      let needsUpdate = false;
+
+      // 1. Inicializar variables si no existen aún en el documento de Firestore
+      if (typeof currentData.points !== 'number') {
+        updates.points = 0;
+        needsUpdate = true;
+      }
+      if (typeof currentData.lives !== 'number') {
+        updates.lives = 3; // 3 vidas iniciales por defecto
+        needsUpdate = true;
+      }
+
+      if (typeof currentData.deaths !== 'number') {
+        updates.deaths = 0;
+        needsUpdate = true;
+      }
+
+      // 2. Lógica de Racha Diaria
+      const lastActive = currentData.lastActiveDate || null;
+      const currentStreak = typeof currentData.streak === 'number' ? currentData.streak : 0;
+
+      if (lastActive !== todayStr) {
+        if (lastActive === yesterdayStr) {
+          // ¡El usuario entró ayer y vuelve hoy! Incrementa racha
+          updates.streak = currentStreak + 1;
+          showToast(`¡Racha aumentada a ${updates.streak} días! 🔥`, "success");
+        } else {
+          // Primer día o perdió su racha anterior -> Reinicia a 1
+          updates.streak = 1;
+        }
+        updates.lastActiveDate = todayStr;
+        updates.lastLoginAt = serverTimestamp();
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        try {
+          await updateDoc(userDocRef, updates);
+        } catch (err) {
+          console.error("Error actualizando estadísticas de usuario:", err);
+        }
+      }
+    }
+
+    // Renderizar UI Superior (Inicial, Puntaje, Racha y 3 Corazones)
+    // Renderizar UI Superior (Inicial, Puntaje, Racha y 3 Corazones)
+    function updateHeaderUI(email, schoolId, data) {
+      const initial = (email && email.trim().length > 0) ? email.trim()[0].toUpperCase() : '?';
+      const points = typeof data.points === 'number' ? data.points : 0;
+      const streak = typeof data.streak === 'number' ? data.streak : 0;
+      const lives = typeof data.lives === 'number' ? Math.max(0, Math.min(3, data.lives)) : 3;
+      
+      // ✅ AQUÍ SE DEFINE LA VARIABLE 'deaths' PARA EVITAR EL ERROR
+      const deaths = typeof data.deaths === 'number' ? data.deaths : 0;
+
+      // Comprobar si las vidas llegan a 0 para mostrar la pantalla de mascota perdida
+      const petLostModal = document.getElementById('pet-lost-modal');
+      if (petLostModal) {
+        if (lives === 0) {
+          petLostModal.classList.remove('hidden');
+          if (window.lucide) lucide.createIcons();
+        } else {
+          petLostModal.classList.add('hidden');
+        }
+      }
+
+      // Avatar con primera letra
+      document.getElementById('user-initial').innerText = initial;
+      document.getElementById('modal-user-initial').innerText = initial;
+      document.getElementById('header-school-badge').innerText = schoolId;
+      document.getElementById('modal-user-email').innerText = email;
+      document.getElementById('modal-school-id').innerText = schoolId;
+
+      // Puntaje y Racha
+      document.getElementById('stat-points').innerText = points.toLocaleString();
+      document.getElementById('stat-streak').innerText = streak;
+
+      // Renderizar los 3 corazones de Salud
+      const livesContainer = document.getElementById('lives-container');
+      const livesCounterText = document.getElementById('lives-counter-text');
+      if (livesContainer) {
+        let heartsHtml = '';
+        for (let i = 1; i <= 3; i++) {
+          if (i <= lives) {
+            heartsHtml += `<i data-lucide="heart" class="w-4 h-4 text-rose-500 fill-rose-500 transition-all duration-300"></i>`;
+          } else {
+            heartsHtml += `<i data-lucide="heart" class="w-4 h-4 text-slate-300 dark:text-slate-700 transition-all duration-300"></i>`;
+          }
+        }
+        livesContainer.innerHTML = heartsHtml;
+      }
+      if (livesCounterText) {
+        livesCounterText.innerText = `${lives} / 3`;
+      }
+
+      if (window.lucide) lucide.createIcons();
+
+      // Compartir datos actualizados con los iframes hijos mediante postMessage
+      broadcastStateToIframes({
+        type: 'FOCUS_RUSHER_SYNC',
+        payload: {
+          uid: window.appState.session?.uid,
+          email,
+          schoolId,
+          points,
+          points,
+          streak,
+          lives,
+          deaths: deaths, // Ahora sí encuentra la variable 'deaths' definida arriba
+          totalHours: data.totalHours ?? 0,
+          completedSessions: data.completedSessions ?? 0,
+          failedSessions: data.failedSessions ?? 0
+        }
+      });
+    }
+
+    // Comunicación segura con los Iframes incrustados
+    function broadcastStateToIframes(message) {
+      ['comunidad', 'home', 'estadisticas'].forEach(tab => {
+        const iframe = document.getElementById(`iframe-${tab}`);
+        if (iframe && iframe.contentWindow && iframe.src !== 'about:blank') {
+          iframe.contentWindow.postMessage(message, window.location.origin);
+        }
+      });
+    }
+
+    // Escuchar eventos desde los iframes hijos (ej. sumar puntos o restar vidas)
+    window.addEventListener('message', async (event) => {
+      if (event.origin !== window.location.origin) return;
+      const { type, amount } = event.data || {};
+      const session = window.appState.session;
+      if (!session) return;
+
+      const userDocRef = doc(db, 'artifacts', appId, 'schools', session.schoolId, 'users', session.uid);
+
+      try {
+        if (type === 'ADD_POINTS' && typeof amount === 'number' && amount > 0) {
+          await updateDoc(userDocRef, { points: increment(amount) });
+        } else if (type === 'LOSE_LIFE') {
+          const currentLives = window.appState.userData.lives ?? 3;
+          if (currentLives > 0) {
+            await updateDoc(userDocRef, { lives: currentLives - 1 });
+          }
+        }
+      } catch (err) {
+        console.error("Error procesando evento de iframe:", err);
+      }
+    });
+
+    // Cerrar Sesión
+    window.logout = async function() {
+      if (window.appState.unsubscribeUser) window.appState.unsubscribeUser();
+      await signOut(auth);
+      sessionStorage.removeItem('school_user_session');
+      localStorage.removeItem('school_user_session');
+      window.location.href = 'index.html';
+    };
+
+    // Verificación de Seguridad al cargar home.html
+    function redirectToLogin() {
+      sessionStorage.removeItem('school_user_session');
+      window.location.href = 'index.html';
+    }
+
+    window.addEventListener('load', () => {
+      if (window.lucide) lucide.createIcons();
+
+      // Recuperar metadatos de sesión guardados por index.html
+      let savedSession = null;
+      try {
+        const raw = sessionStorage.getItem('school_user_session') || localStorage.getItem('school_user_session');
+        if (raw) savedSession = JSON.parse(raw);
+      } catch {
+        redirectToLogin();
+        return;
+      }
+
+      if (!savedSession || !savedSession.schoolId || !savedSession.uid) {
+        redirectToLogin();
+        return;
+      }
+
+      // Validar sesión real contra Firebase Authentication
+      onAuthStateChanged(auth, async (user) => {
+        if (!user || user.uid !== savedSession.uid) {
+          redirectToLogin();
+          return;
+        }
+
+        window.appState.session = {
+          uid: user.uid,
+          email: user.email || savedSession.email,
+          schoolId: savedSession.schoolId
+        };
+
+        const userDocRef = doc(db, 'artifacts', appId, 'schools', savedSession.schoolId, 'users', user.uid);
+
+        // Verificar existencia y estado activo antes de iniciar escucha en tiempo real
+        const initialSnap = await getDoc(userDocRef);
+        if (!initialSnap.exists() || initialSnap.data().status === 'suspended') {
+          await signOut(auth);
+          redirectToLogin();
+          return;
+        }
+
+        // Ejecutar lógica de racha e inicialización de variables (points, streak, lives: 3)
+        await syncUserGamificationStats(userDocRef, initialSnap.data());
+
+        // Suscripción en tiempo real a los datos del usuario en Firestore
+        window.appState.unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+          if (!docSnap.exists() || docSnap.data().status === 'suspended') {
+            window.logout();
+            return;
+          }
+
+          const data = docSnap.data();
+          window.appState.userData = data;
+          updateHeaderUI(user.email || savedSession.email, savedSession.schoolId, data);
+
+          // Ocultar pantalla de carga
+          const loader = document.getElementById('loading-overlay');
+          if (loader && !loader.classList.contains('hidden')) {
+            loader.classList.add('opacity-0');
+            setTimeout(() => loader.classList.add('hidden'), 300);
+          }
+        }, (err) => {
+          console.error("Error en listener de usuario:", err);
+          showToast("Error de conexión con Firestore", "error");
+        });
+
+        // Inicializar pestaña central ('home')
+        switchTab('home');
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Focus Rusher - Inicio</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' };
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      background: transparent;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    @keyframes popIn {
+      0% { opacity: 0; transform: scale(0.92) translateY(-8px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .animate-modal {
+      animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col items-center justify-center p-3 font-sans text-slate-800 dark:text-slate-100 overflow-hidden">
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <div class="w-full max-w-xs sm:max-w-sm flex flex-col items-center justify-center p-4 bg-white/70 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 shadow-xl rounded-3xl gap-3 my-auto">
+    
+    <!-- Tarjeta de Imagen del Lobo -->
+    <div id="wolf-card" class="w-full aspect-video rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/80 flex items-center justify-center p-2 relative overflow-hidden transition-all duration-300">
+      <img 
+        id="wolf-image" 
+        src="" 
+        alt="Lobo Focus Rusher" 
+        class="w-full h-full object-contain transition-all duration-500 filter drop-shadow-xl hidden"
+      />
+      <div id="wolf-placeholder" class="w-full h-full rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700/80 flex items-center justify-center bg-slate-50/50 dark:bg-slate-900/40"></div>
+    </div>
+
+    <!-- Controles Inferiores -->
+    <div class="w-full flex items-center gap-2 pt-1">
+      <button onclick="startSession()" id="btn-start" aria-label="Empezar sesión" class="flex-1 py-3 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white text-xs font-black tracking-wide shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer">
+        <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+        <span id="txt-start">Empezar</span>
+      </button>
+
+      <button onclick="openTimerModal()" id="btn-config" aria-label="Configurar tiempo" class="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-md active:scale-95 transition-all cursor-pointer" title="Configurar tiempo">
+        <i data-lucide="clock" class="w-4 h-4 text-indigo-600 dark:text-indigo-400" id="config-icon"></i>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- MODAL DE CONFIGURACIÓN -->
+  <div id="timer-modal" onclick="closeTimerModal(event)" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 backdrop-blur-sm p-4 transition-opacity">
+    <div onclick="event.stopPropagation()" class="w-full max-w-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 animate-modal relative">
+      
+      <!-- Cabecera -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div id="modal-icon-box" class="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+            <i data-lucide="timer" class="w-4 h-4"></i>
+          </div>
+          <h3 id="txt-modal-title" class="text-sm font-bold text-slate-900 dark:text-white">Configurar Tiempo</h3>
+        </div>
+        <button onclick="closeTimerModal()" aria-label="Cerrar modal" class="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Tiempos Rápidos -->
+      <div class="space-y-2">
+        <label id="txt-presets-label" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Tiempos Rápidos</label>
+        <div class="grid grid-cols-4 gap-2">
+          <button onclick="setMinutesPreset(15)" class="preset-btn py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold transition-colors cursor-pointer" data-mins="15">15m</button>
+          <button onclick="setMinutesPreset(25)" class="preset-btn py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold shadow-md shadow-indigo-600/25 transition-colors active-preset" data-mins="25" data-active="true">25m</button>
+          <button onclick="setMinutesPreset(45)" class="preset-btn py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold transition-colors cursor-pointer" data-mins="45">45m</button>
+          <button onclick="setMinutesPreset(60)" class="preset-btn py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold transition-colors cursor-pointer" data-mins="60">60m</button>
+        </div>
+      </div>
+
+      <!-- Minutos Personalizados -->
+      <div class="space-y-1.5">
+        <label for="custom-minutes-input" id="txt-manual-label" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Minutos Personalizados</label>
+        <div class="relative flex items-center">
+          <input 
+            type="number" 
+            id="custom-minutes-input" 
+            min="1" 
+            max="300" 
+            value="25"
+            class="w-full py-2.5 px-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-bold font-mono text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all"
+          />
+          <span class="absolute right-3.5 text-xs font-semibold text-slate-400" id="txt-mins-unit">min</span>
+        </div>
+      </div>
+
+      <!-- Guardar -->
+      <button onclick="saveTimerConfig()" class="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white text-xs font-extrabold shadow-lg shadow-indigo-600/30 transition-all cursor-pointer" id="txt-save-btn">
+        Guardar Configuración
+      </button>
+
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script>
+    let currentScore = 0;
+    let configuredMinutes = 25;
+    let currentAccent = 'indigo';
+
+    const translations = {
+      es: { startBtn: "Empezar", modalTitle: "Configurar Tiempo", presetsLabel: "Tiempos Rápidos", manualLabel: "Minutos Personalizados", saveBtn: "Guardar Configuración", minsUnit: "min" },
+      en: { startBtn: "Start", modalTitle: "Configure Time", presetsLabel: "Quick Times", manualLabel: "Custom Minutes", saveBtn: "Save Settings", minsUnit: "min" }
+    };
+
+    const accentStyles = {
+      indigo: { bg: 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30', text: 'text-indigo-600 dark:text-indigo-400', preset: 'bg-indigo-600 shadow-indigo-600/25' },
+      emerald: { bg: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30', text: 'text-emerald-600 dark:text-emerald-400', preset: 'bg-emerald-600 shadow-emerald-600/25' },
+      rose: { bg: 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/30', text: 'text-rose-600 dark:text-rose-400', preset: 'bg-rose-600 shadow-rose-600/25' },
+      amber: { bg: 'bg-amber-500 hover:bg-amber-400 shadow-amber-500/30', text: 'text-amber-500 dark:text-amber-400', preset: 'bg-amber-500 shadow-amber-500/25' },
+      cyan: { bg: 'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-600/30', text: 'text-cyan-600 dark:text-cyan-400', preset: 'bg-cyan-600 shadow-cyan-600/25' }
+    };
+
+    function updateWolfByScore(score) {
+      currentScore = score;
+      const wolfImg = document.getElementById('wolf-image');
+      const wolfPlaceholder = document.getElementById('wolf-placeholder');
+
+      // Definir la ruta según el puntaje (ejemplo placeholder)
+      let imageSrc = score >= 500 ? "" : "logo.webp";
+
+      if (imageSrc && imageSrc.trim() !== "") {
+        wolfImg.src = imageSrc;
+        wolfImg.classList.remove('hidden');
+        wolfPlaceholder.classList.add('hidden');
+      } else {
+        wolfImg.classList.add('hidden');
+        wolfPlaceholder.classList.remove('hidden');
+      }
+    }
+
+    function openTimerModal() {
+      document.getElementById('timer-modal').classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeTimerModal() {
+      document.getElementById('timer-modal').classList.add('hidden');
+    }
+
+    function setMinutesPreset(mins) {
+      configuredMinutes = mins;
+      document.getElementById('custom-minutes-input').value = mins;
+      
+      const currentTheme = accentStyles[currentAccent] || accentStyles.indigo;
+
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        if (parseInt(btn.dataset.mins) === mins) {
+          btn.className = `preset-btn py-2 rounded-xl text-white text-xs font-bold shadow-md transition-colors cursor-pointer ${currentTheme.preset}`;
+          btn.setAttribute('data-active', 'true');
+        } else {
+          btn.className = "preset-btn py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold transition-colors cursor-pointer";
+          btn.removeAttribute('data-active');
+        }
+      });
+    }
+
+    function saveTimerConfig() {
+      const inputVal = parseInt(document.getElementById('custom-minutes-input').value);
+      if (!isNaN(inputVal) && inputVal >= 1 && inputVal <= 300) {
+        configuredMinutes = inputVal;
+      }
+      closeTimerModal();
+    }
+
+    function startSession() {
+      const minutes = configuredMinutes || 25;
+      const targetUrl = `timer.html?minutes=${minutes}`;
+      if (window.parent && window.parent !== window) {
+        window.parent.location.href = targetUrl;
+      } else {
+        window.location.href = targetUrl;
+      }
+    }
+
+    function applyAccentColor(accent) {
+      currentAccent = accent in accentStyles ? accent : 'indigo';
+      const theme = accentStyles[currentAccent];
+
+      const btnStart = document.getElementById('btn-start');
+      if (btnStart) btnStart.className = `flex-1 py-3 px-5 rounded-2xl text-white text-xs font-black tracking-wide shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${theme.bg}`;
+
+      const btnSave = document.getElementById('txt-save-btn');
+      if (btnSave) btnSave.className = `w-full py-3 rounded-2xl text-white text-xs font-extrabold shadow-lg transition-all cursor-pointer ${theme.bg}`;
+
+      const configIcon = document.getElementById('config-icon');
+      if (configIcon) configIcon.className = `w-4 h-4 ${theme.text}`;
+
+      const modalIconBox = document.getElementById('modal-icon-box');
+      if (modalIconBox) modalIconBox.className = `p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 ${theme.text}`;
+
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        if (btn.hasAttribute('data-active')) {
+          btn.className = `preset-btn py-2 rounded-xl text-white text-xs font-bold shadow-md transition-colors cursor-pointer ${theme.preset}`;
+        }
+      });
+    }
+
+    window.addEventListener('message', (event) => {
+      if (event.origin !== window.location.origin) return;
+      const { type, payload } = event.data || {};
+      if (type === 'FOCUS_RUSHER_SYNC' && payload && typeof payload.points === 'number') {
+        updateWolfByScore(payload.points);
+      }
+    });
+
+    window.addEventListener('load', () => {
+      if (window.lucide) lucide.createIcons();
+      updateWolfByScore(0);
+
+      if (window.parent && window.parent !== window) {
+        if (window.parent.document.documentElement.classList.contains('dark')) {
+          document.documentElement.classList.add('dark');
+        }
+      }
+
+      try {
+        const parentAccent = localStorage.getItem('accentColorRedux') || localStorage.getItem('accentColor');
+        if (parentAccent) applyAccentColor(parentAccent);
+
+        const parentLang = localStorage.getItem('lang');
+        if (parentLang && translations[parentLang]) {
+          const t = translations[parentLang];
+          document.getElementById('txt-start').innerText = t.startBtn;
+          document.getElementById('txt-modal-title').innerText = t.modalTitle;
+          document.getElementById('txt-presets-label').innerText = t.presetsLabel;
+          document.getElementById('txt-manual-label').innerText = t.manualLabel;
+          document.getElementById('txt-save-btn').innerText = t.saveBtn;
+          document.getElementById('txt-mins-unit').innerText = t.minsUnit;
+        }
+      } catch (e) {}
+    });
+  </script>
+</body>
+</html>

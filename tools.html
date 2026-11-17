@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Herramientas de Estudio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' };
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: transparent;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .tool-card {
+            width: 95%;
+            max-width: 420px;
+            height: 550px;
+            border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .tab-btn {
+            transition: all 0.2s ease;
+            position: relative;
+            color: #94a3b8;
+        }
+
+        .tab-btn.active {
+            color: #6366f1;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 25%;
+            width: 50%;
+            height: 3px;
+            background: #6366f1;
+            border-radius: 3px 3px 0 0;
+        }
+
+        .content-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            position: relative;
+            scroll-behavior: smooth;
+        }
+
+        .tab-panel {
+            display: none;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Estilos Calculadora */
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .calc-btn { height: 55px; border-radius: 16px; font-weight: 700; transition: transform 0.1s; display: flex; align-items: center; justify-content: center; }
+        .calc-btn:active { transform: scale(0.95); }
+
+        /* Estilos Galería */
+        .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .photo-item { 
+            aspect-ratio: 1; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            position: relative; 
+            cursor: pointer;
+        }
+        .photo-item img { width: 100%; height: 100%; object-fit: cover; }
+        .delete-photo {
+            position: absolute; top: 4px; right: 4px; background: rgba(239, 68, 68, 0.9);
+            color: white; padding: 4px; border-radius: 50%; cursor: pointer; z-index: 10;
+        }
+
+        /* Vista de Detalle */
+        #photo-detail-view {
+            position: absolute;
+            inset: 0;
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            padding: 15px;
+            animation: fadeIn 0.2s ease forwards;
+        }
+        #photo-detail-view.active { display: flex; }
+
+        .image-container {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        .image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* Burbujas de chat */
+        .chat-bubble {
+            max-width: 85%;
+            padding: 12px;
+            border-radius: 16px;
+            font-size: 0.875rem;
+            line-height: 1.4;
+            margin-bottom: 12px;
+            animation: fadeIn 0.3s ease-out;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body class="bg-transparent">
+
+    <div class="tool-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <!-- Vista de Detalle Interna -->
+        <div id="photo-detail-view" class="bg-white dark:bg-slate-900">
+            <div class="flex items-center justify-between mb-3">
+                <button onclick="closeDetail()" class="flex items-center text-indigo-600 dark:text-indigo-400 font-bold text-sm hover:opacity-75 transition-opacity">
+                    <i data-lucide="chevron-left" class="w-4 h-4 mr-1"></i> <span id="txt-back">Regresar</span>
+                </button>
+                <span id="txt-enlarged" class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Vista Ampliada</span>
+            </div>
+            <div class="image-container bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                <img id="detail-img" src="" alt="Vista previa">
+            </div>
+        </div>
+
+        <!-- Navegación -->
+        <div class="flex border-b border-slate-100 dark:border-slate-800 flex-shrink-0 bg-white dark:bg-slate-900 z-10">
+            <button onclick="showTab(event, 'ia')" class="tab-btn active flex-1 py-4 text-[10px] font-bold uppercase tracking-wider">
+                <i data-lucide="sparkles" class="w-4 h-4 mx-auto mb-1"></i> IA
+            </button>
+            <button onclick="showTab(event, 'calc')" class="tab-btn flex-1 py-4 text-[10px] font-bold uppercase tracking-wider">
+                <i data-lucide="calculator" class="w-4 h-4 mx-auto mb-1"></i> Calc
+            </button>
+            <button onclick="showTab(event, 'gallery')" class="tab-btn flex-1 py-4 text-[10px] font-bold uppercase tracking-wider">
+                <i data-lucide="image" class="w-4 h-4 mx-auto mb-1"></i> <span id="txt-gallery-tab">Galería</span>
+            </button>
+        </div>
+
+        <div class="content-area" id="main-content-area">
+            <!-- Panel IA -->
+            <div id="tab-ia" class="tab-panel active">
+                <div class="mb-4">
+                    <h2 id="txt-ai-title" class="text-lg font-bold text-slate-800 dark:text-slate-100">Asistente de IA</h2>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <p class="text-xs text-slate-400">Google Gemini 2.5 Flash</p>
+                    </div>
+                </div>
+                
+                <div id="ai-results" class="flex flex-col mb-4 min-h-[100px]">
+                    <div id="empty-ai" class="text-center py-10 text-slate-300 dark:text-slate-600">
+                        <i data-lucide="message-square" class="w-10 h-10 mx-auto mb-2 opacity-30"></i>
+                        <p id="txt-ai-empty" class="text-xs">Escribe algo para comenzar</p>
+                    </div>
+                </div>
+
+                <!-- Input fijo al final del panel -->
+                <div class="sticky bottom-0 bg-white dark:bg-slate-900 pt-2 pb-1">
+                    <div class="flex gap-2">
+                        <input type="text" id="ai-input" onkeypress="if(event.key==='Enter') handleAISubmit()" placeholder="Pregunta sobre tu estudio..." class="flex-grow bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-xl px-4 py-3 text-sm focus:border-indigo-500 outline-none transition-all">
+                        <button id="send-btn" onclick="handleAISubmit()" class="bg-indigo-600 text-white p-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Calculadora -->
+            <div id="tab-calc" class="tab-panel">
+                <div id="calc-display" class="bg-slate-900 text-white text-right p-6 rounded-2xl text-3xl font-bold mb-4 shadow-inner truncate">0</div>
+                <div class="calc-grid">
+                    <button onclick="calcClear()" class="calc-btn bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400">C</button>
+                    <button onclick="calcDel()" class="calc-btn bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300"><i data-lucide="delete"></i></button>
+                    <button onclick="calcOp('/')" class="calc-btn bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">÷</button>
+                    <button onclick="calcOp('*')" class="calc-btn bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">×</button>
+                    <button onclick="calcNum('7')" class="calc-btn bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100">7</button>
+                    <button onclick="calcNum('8')" class="calc-btn bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100">8</button>
+                    <button onclick="calcNum('9')" class="calc-btn bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100">9</button>
+                    <button onclick="calcOp('-')" class="calc-btn bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">−</button>
+                    <button onclick="calcNum('4')" class="calc-btn bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100">4</button>
+                    <button onclick="calcNum('5')" class="calc-btn bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100">5</button>
+                    <button onclick="calcNum('6')" class="calc-btn bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100">6</button>
+                    <button onclick="calcOp('+')" class="calc-btn bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">+</button>
+                    <button onclick="calcNum('1')" class="calc-btn bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100">1</button>
+                    <button onclick="calcNum('2')" class="calc-btn bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100">2</button>
+                    <button onclick="calcNum('3')" class="calc-btn bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100">3</button>
+                    <button onclick="calcEq()" class="calc-btn bg-indigo-600 text-white row-span-2">=</button>
+                    <button onclick="calcNum('0')" class="calc-btn bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 col-span-2">0</button>
+                    <button onclick="calcNum('.')" class="calc-btn bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100">.</button>
+                </div>
+            </div>
+
+            <!-- Panel Galería -->
+            <div id="tab-gallery" class="tab-panel">
+                <div class="mb-4">
+                    <h2 id="txt-gallery-title" class="text-lg font-bold text-slate-800 dark:text-slate-100">Mis Apuntes</h2>
+                    <p id="txt-gallery-desc" class="text-xs text-slate-400">Imágenes guardadas de esta sesión.</p>
+                </div>
+                <label class="w-full border-2 border-dashed border-indigo-100 dark:border-indigo-950/60 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer mb-6 hover:bg-indigo-100/50 dark:hover:bg-indigo-900/30 transition-colors group">
+                    <input type="file" id="photo-upload" accept="image/*" class="hidden" multiple onchange="handleUpload(event)">
+                    <i data-lucide="camera" class="w-8 h-8 text-indigo-500 dark:text-indigo-400 mb-2"></i>
+                    <span id="txt-upload-btn" class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">Subir Nueva Foto</span>
+                </label>
+                <div id="gallery-grid" class="photo-grid"></div>
+                <div id="empty-gallery" class="text-center py-10 text-slate-300 dark:text-slate-600">
+                    <i data-lucide="images" class="w-10 h-10 mx-auto mb-2 opacity-30"></i>
+                    <p id="txt-gallery-empty" class="text-xs">Sin fotos todavía</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Sincronización de Tema e Idioma recibidos del Padre ---
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentLang = urlParams.get('lang') || localStorage.getItem('lang') || 'es';
+        const currentTheme = urlParams.get('theme') || localStorage.getItem('theme') || 'light';
+
+        if (currentTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
+        const i18nTools = {
+            es: {
+                aiTitle: "Asistente de IA",
+                aiEmpty: "Escribe algo para comenzar",
+                aiPlaceholder: "Pregunta sobre tu estudio...",
+                galleryTitle: "Mis Apuntes",
+                galleryDesc: "Imágenes guardadas de esta sesión.",
+                galleryTab: "Galería",
+                uploadBtn: "Subir Nueva Foto",
+                galleryEmpty: "Sin fotos todavía",
+                back: "Regresar",
+                enlarged: "Vista Ampliada",
+                thinking: "Pensando...",
+                initialGreeting: "¡Hola! Estoy listo para ayudarte con tus estudios. ¿Qué quieres repasar hoy?",
+                errorMsg: "Lo siento, hubo un problema al conectar con mi cerebro artificial. Por favor, intenta de nuevo."
+            },
+            en: {
+                aiTitle: "AI Assistant",
+                aiEmpty: "Type something to start",
+                aiPlaceholder: "Ask about your studies...",
+                galleryTitle: "My Notes",
+                galleryDesc: "Saved images from this session.",
+                galleryTab: "Gallery",
+                uploadBtn: "Upload New Photo",
+                galleryEmpty: "No photos yet",
+                back: "Back",
+                enlarged: "Enlarged View",
+                thinking: "Thinking...",
+                initialGreeting: "Hello! I'm ready to help you with your studies. What do you want to review today?",
+                errorMsg: "Sorry, there was a problem connecting to my artificial brain. Please try again."
+            }
+        };
+
+        function applyTranslations() {
+            const t = i18nTools[currentLang] || i18nTools.es;
+            document.getElementById('txt-back').innerText = t.back;
+            document.getElementById('txt-enlarged').innerText = t.enlarged;
+            document.getElementById('txt-gallery-tab').innerText = t.galleryTab;
+            document.getElementById('txt-ai-title').innerText = t.aiTitle;
+            document.getElementById('txt-ai-empty').innerText = t.aiEmpty;
+            document.getElementById('ai-input').placeholder = t.aiPlaceholder;
+            document.getElementById('txt-gallery-title').innerText = t.galleryTitle;
+            document.getElementById('txt-gallery-desc').innerText = t.galleryDesc;
+            document.getElementById('txt-upload-btn').innerText = t.uploadBtn;
+            document.getElementById('txt-gallery-empty').innerText = t.galleryEmpty;
+        }
+
+        applyTranslations();
+
+        // Escuchar cambios enviados por postMessage desde el padre (timer.html)
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+            if (!data) return;
+            if (data.theme) {
+                if (data.theme === 'dark') document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+            }
+            if (data.lang && i18nTools[data.lang]) {
+                currentLang = data.lang;
+                applyTranslations();
+            }
+        });
+
+        // --- Configuración API de Google ---
+        const apiKey = ""; 
+        const AI_MODEL = "gemini-2.5-flash-preview-09-2025";
+        
+        async function fetchAIResponse(userQuery) {
+            const systemPrompt = currentLang === 'en' 
+                ? "You are an optimized study assistant. Answer briefly (maximum 3 sentences) and motivating. Use a friendly tone for students under 18."
+                : "Eres un asistente de estudio optimizado. Responde de forma breve (máximo 3 frases) y motivadora. Usa un tono amigable para estudiantes menores de 18 años. Evita temas inapropiados.";
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${AI_MODEL}:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
+
+            let delay = 1000;
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error('Network error');
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text || (currentLang === 'en' ? "I couldn't generate a response at this moment." : "No pude generar una respuesta en este momento.");
+                } catch (error) {
+                    if (i === 4) throw error;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        async function handleAISubmit() {
+            const input = document.getElementById('ai-input');
+            const emptyAi = document.getElementById('empty-ai');
+            const sendBtn = document.getElementById('send-btn');
+            const prompt = input.value.trim();
+
+            if (!prompt) return;
+
+            input.value = "";
+            input.disabled = true;
+            sendBtn.disabled = true;
+            if (emptyAi) emptyAi.style.display = 'none';
+
+            appendBubble(prompt, 'user');
+            const t = i18nTools[currentLang] || i18nTools.es;
+            const loadingBubble = appendBubble(t.thinking, 'ai', true);
+            scrollToBottom();
+
+            try {
+                const aiResponse = await fetchAIResponse(prompt);
+                loadingBubble.remove();
+                appendBubble(aiResponse, 'ai');
+            } catch (error) {
+                loadingBubble.remove();
+                appendBubble(t.errorMsg, 'ai');
+                console.error("AI Error:", error);
+            } finally {
+                input.disabled = false;
+                sendBtn.disabled = false;
+                input.focus();
+                scrollToBottom();
+            }
+        }
+
+        function appendBubble(content, type, isLoading = false) {
+            const results = document.getElementById('ai-results');
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${type === 'user' ? 'user-bubble bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 ml-auto border-b-right-4' : 'ai-bubble bg-indigo-50 dark:bg-indigo-950/50 text-indigo-950 dark:text-indigo-200 border border-indigo-100 dark:border-indigo-900/50 mr-auto border-b-left-4'}`;
+            if (isLoading) bubble.classList.add('animate-pulse');
+            bubble.innerText = content;
+            results.appendChild(bubble);
+            return bubble;
+        }
+
+        function scrollToBottom() {
+            const content = document.getElementById('main-content-area');
+            content.scrollTo({ top: content.scrollHeight, behavior: 'smooth' });
+        }
+
+        // --- Sistema de Pestañas ---
+        function showTab(event, tabId) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            if (event) event.currentTarget.classList.add('active');
+            closeDetail();
+            lucide.createIcons();
+        }
+
+        // --- Calculadora ---
+        let cur = "0";
+        const d = document.getElementById('calc-display');
+        function updateCalc() { d.innerText = cur; }
+        function calcNum(n) { cur === "0" ? cur = n : cur += n; updateCalc(); }
+        function calcOp(op) { if (!isNaN(cur.slice(-1)) || cur.slice(-1) === '.') cur += op; updateCalc(); }
+        function calcClear() { cur = "0"; updateCalc(); }
+        function calcDel() { cur = cur.length > 1 ? cur.slice(0, -1) : "0"; updateCalc(); }
+        function calcEq() { try { cur = eval(cur).toString(); } catch { cur = "Error"; } updateCalc(); }
+
+        // --- Galería ---
+        function handleUpload(event) {
+            const grid = document.getElementById('gallery-grid');
+            const empty = document.getElementById('empty-gallery');
+            Array.from(event.target.files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    empty.style.display = 'none';
+                    const div = document.createElement('div');
+                    div.className = "photo-item border border-slate-100 dark:border-slate-800 bg-slate-100 dark:bg-slate-800";
+                    div.onclick = () => openDetail(e.target.result);
+                    div.innerHTML = `<img src="${e.target.result}"><div class="delete-photo" onclick="removePhoto(event, this)"><i data-lucide="trash-2" class="w-3 h-3"></i></div>`;
+                    grid.prepend(div);
+                    lucide.createIcons();
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function removePhoto(e, btn) {
+            e.stopPropagation();
+            btn.closest('.photo-item').remove();
+            if (document.getElementById('gallery-grid').children.length === 0) document.getElementById('empty-gallery').style.display = 'block';
+        }
+
+        function openDetail(src) {
+            document.getElementById('detail-img').src = src;
+            document.getElementById('photo-detail-view').classList.add('active');
+            lucide.createIcons();
+        }
+
+        function closeDetail() {
+            document.getElementById('photo-detail-view').classList.remove('active');
+        }
+
+        window.onload = () => {
+            lucide.createIcons();
+            setTimeout(() => {
+                const emptyAi = document.getElementById('empty-ai');
+                if (emptyAi) emptyAi.style.display = 'none';
+                const t = i18nTools[currentLang] || i18nTools.es;
+                appendBubble(t.initialGreeting, 'ai');
+            }, 500);
+        };
+    </script>
+</body>
+</html>

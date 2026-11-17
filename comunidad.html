@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Comunidad - Focus Rusher</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 9999px; }
+    .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-post {
+      animation: fadeSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="h-full font-sans antialiased bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200 overflow-x-hidden">
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-sm transition-all duration-300 transform -translate-y-24 opacity-0 pointer-events-none">
+    <div id="toast-content" class="p-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-semibold border bg-slate-800 text-white border-slate-700">
+      <i id="toast-icon" data-lucide="info" class="w-4 h-4 flex-shrink-0"></i>
+      <span id="toast-message" class="flex-1"></span>
+    </div>
+  </div>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <div class="max-w-md mx-auto w-full min-h-full flex flex-col pb-6">
+
+    <!-- =====================================================================
+         1. BARRA SUPERIOR DE PUBLICACIÓN (COMPOSER STICKY)
+    ====================================================================== -->
+    <section class="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-4 pt-3.5 pb-3 shadow-sm">
+      <form id="post-form" onsubmit="handlePublishPost(event)" class="space-y-2.5">
+        <div class="flex items-start gap-2.5">
+          <!-- Avatar Usuario -->
+          <div id="composer-avatar" class="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-sm uppercase flex-shrink-0 shadow-sm mt-0.5 transition-colors">
+            ?
+          </div>
+
+          <!-- Caja de Texto Expandible -->
+          <div class="flex-1 bg-slate-100/90 dark:bg-slate-800/80 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all px-3 py-2">
+            <textarea 
+              id="post-text" 
+              rows="2" 
+              maxlength="1000"
+              placeholder="Comparte apuntes, dudas o recursos con tu escuela..." 
+              data-i18n-placeholder="composerPlaceholder"
+              class="w-full bg-transparent text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none leading-relaxed"></textarea>
+
+            <!-- Vista Previa de Archivo Adjunto (Imagen o PDF) -->
+            <div id="attachment-preview" class="hidden mt-2 pt-2 border-t border-slate-200/80 dark:border-slate-700/80 relative">
+              <!-- Preview Imagen -->
+              <div id="preview-image-box" class="hidden relative rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-900 max-h-40 flex items-center justify-center">
+                <img id="preview-image-el" src="" alt="Vista previa" class="max-h-40 w-auto object-contain rounded-xl">
+              </div>
+
+              <!-- Preview PDF -->
+              <div id="preview-pdf-box" class="hidden flex items-center gap-2.5 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50">
+                <div class="p-2 rounded-lg bg-rose-500 text-white flex-shrink-0">
+                  <i data-lucide="file-text" class="w-4 h-4"></i>
+                </div>
+                <div class="overflow-hidden flex-1">
+                  <p id="preview-pdf-name" class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">documento.pdf</p>
+                  <p id="preview-pdf-size" class="text-[10px] text-slate-500 font-mono">0 KB • PDF</p>
+                </div>
+              </div>
+
+              <!-- Botón Quitar Adjunto -->
+              <button type="button" onclick="clearAttachment()" class="absolute top-3 right-1.5 p-1 rounded-full bg-slate-900/75 text-white hover:bg-rose-600 transition-colors shadow-md" title="Quitar archivo">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de Herramientas del Composer -->
+        <div class="flex items-center justify-between pl-11">
+          <div class="flex items-center gap-1.5">
+            <!-- Input oculto para Imágenes -->
+            <input type="file" id="input-image" accept="image/png, image/jpeg, image/webp" class="hidden" onchange="handleFileSelect(event, 'image')">
+            <button type="button" onclick="document.getElementById('input-image').click()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors active:scale-95">
+              <i data-lucide="image" class="w-4 h-4 text-emerald-500"></i>
+              <span data-i18n="btnPhoto">Imagen</span>
+            </button>
+
+            <!-- Input oculto para PDFs -->
+            <input type="file" id="input-pdf" accept="application/pdf" class="hidden" onchange="handleFileSelect(event, 'pdf')">
+            <button type="button" onclick="document.getElementById('input-pdf').click()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors active:scale-95">
+              <i data-lucide="file-up" class="w-4 h-4 text-rose-500"></i>
+              <span>PDF</span>
+            </button>
+          </div>
+
+          <!-- Botón Publicar -->
+          <button type="submit" id="btn-publish" class="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition-all active:scale-95">
+            <span data-i18n="btnPublish">Publicar</span>
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- =====================================================================
+         2. BARRA DE FILTROS (MÁS RECIENTES vs MÁS LIKEADOS)
+    ====================================================================== -->
+    <div class="flex items-center justify-between px-4 py-3">
+      <div class="flex items-center gap-1.5">
+        <i data-lucide="sparkles" id="feed-header-icon" class="w-4 h-4 text-indigo-500"></i>
+        <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300" data-i18n="feedTitle">Muro Escolar</h2>
+        <span id="posts-count-badge" class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400">0</span>
+      </div>
+
+      <!-- Segmented Control de Filtros -->
+      <div class="flex items-center bg-slate-200/80 dark:bg-slate-800/90 p-1 rounded-xl border border-slate-300/50 dark:border-slate-700/60">
+        <button onclick="setFeedFilter('recent')" id="filter-recent" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm transition-all flex items-center gap-1">
+          <i data-lucide="clock" class="w-3 h-3"></i>
+          <span data-i18n="filterRecent">Recientes</span>
+        </button>
+        <button onclick="setFeedFilter('likes')" id="filter-likes" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all flex items-center gap-1">
+          <i data-lucide="heart" class="w-3 h-3"></i>
+          <span data-i18n="filterLikes">Más likeados</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         3. FEED DE PUBLICACIONES (MÁXIMO 10 INICIALES)
+    ====================================================================== -->
+    <main id="posts-feed" class="px-4 space-y-3.5 flex-1">
+      <!-- Skeleton Loader inicial -->
+      <div class="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-3 animate-pulse">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-800"></div>
+          <div class="space-y-1.5 flex-1">
+            <div class="h-3 w-28 bg-slate-200 dark:bg-slate-800 rounded"></div>
+            <div class="h-2.5 w-16 bg-slate-100 dark:bg-slate-800/60 rounded"></div>
+          </div>
+        </div>
+        <div class="h-12 bg-slate-100 dark:bg-slate-800/60 rounded-2xl"></div>
+      </div>
+    </main>
+
+    <!-- Botón Cargar Más (si hay más de 10 posts) -->
+    <div id="load-more-container" class="hidden px-4 pt-4 text-center">
+      <button onclick="loadMorePosts()" class="w-full py-2.5 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 shadow-sm transition-all">
+        <span data-i18n="loadMore">Mostrar publicaciones anteriores</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- =====================================================================
+       MODAL VISOR DE IMAGEN / PDF EN PANTALLA COMPLETA
+  ====================================================================== -->
+  <div id="media-modal" onclick="closeMediaModal()" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex flex-col p-4">
+    <div class="flex items-center justify-between pb-3 text-white" onclick="event.stopPropagation()">
+      <span id="media-modal-title" class="text-xs font-bold truncate max-w-[75%]">Archivo adjunto</span>
+      <div class="flex items-center gap-2">
+        <button type="button" id="media-modal-download-btn" onclick="downloadCurrentMedia()" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer" title="Descargar">
+          <i data-lucide="download" class="w-4 h-4"></i>
+        </button>
+        <button onclick="closeMediaModal()" class="p-2 rounded-xl bg-white/10 hover:bg-rose-600 text-white transition-colors cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+    <div class="flex-1 flex items-center justify-center overflow-hidden" onclick="event.stopPropagation()">
+      <img id="media-modal-img" src="" alt="Vista ampliada" class="hidden max-w-full max-h-full object-contain rounded-2xl shadow-2xl">
+      <iframe id="media-modal-pdf" src="" class="hidden w-full h-full rounded-2xl bg-white border-0"></iframe>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       SCRIPT DE ESTADO, TEMA, PROCESAMIENTO BASE64 Y FILTROS
+  ====================================================================== -->
+  <script>
+    window.communityState = {
+      session: null,
+      allPosts: [],
+      filterMode: 'recent', // 'recent' | 'likes'
+      displayLimit: 10,     // Solo carga 10 posts al inicio
+      attachment: null,     // { type: 'image' | 'pdf', base64: string, name: string, sizeLabel: string }
+      accentColor: localStorage.getItem('accentColor') || 'indigo',
+      lang: localStorage.getItem('lang') || 'es',
+      unsubscribePosts: null,
+      activeRepliesPostId: null, // ID del post que actualmente muestra el cajón de comentarios/replies
+      currentModalData: { type: null, base64: null, title: null } // Datos activos para descarga robusta
+    };
+
+    const ACCENT_MAP = {
+      indigo: { bg: 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20', text: 'text-indigo-600 dark:text-indigo-400', avatar: 'bg-indigo-600' },
+      emerald: { bg: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20', text: 'text-emerald-600 dark:text-emerald-400', avatar: 'bg-emerald-600' },
+      rose: { bg: 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/20', text: 'text-rose-600 dark:text-rose-400', avatar: 'bg-rose-600' },
+      amber: { bg: 'bg-amber-500 hover:bg-amber-400 shadow-amber-500/20', text: 'text-amber-600 dark:text-amber-400', avatar: 'bg-amber-500' },
+      cyan: { bg: 'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-600/20', text: 'text-cyan-600 dark:text-cyan-400', avatar: 'bg-cyan-600' }
+    };
+
+    const I18N = {
+      es: {
+        composerPlaceholder: "Comparte apuntes, dudas o recursos con tu escuela...",
+        btnPhoto: "Imagen",
+        btnPublish: "Publicar",
+        feedTitle: "Muro Escolar",
+        filterRecent: "Recientes",
+        filterLikes: "Más likeados",
+        loadMore: "Mostrar publicaciones anteriores",
+        emptyFeed: "Aún no hay publicaciones en tu escuela. ¡Sé el primero en compartir algo!",
+        justNow: "Ahora mismo",
+        viewPdf: "Abrir / Descargar PDF",
+        replyPlaceholder: "Escribe una respuesta...",
+        btnReply: "Responder",
+        repliesTitle: "Comentarios"
+      },
+      en: {
+        composerPlaceholder: "Share notes, questions or resources with your school...",
+        btnPhoto: "Image",
+        btnPublish: "Post",
+        feedTitle: "School Feed",
+        filterRecent: "Recent",
+        filterLikes: "Most Liked",
+        loadMore: "Show older posts",
+        emptyFeed: "No posts in your school yet. Be the first to share something!",
+        justNow: "Just now",
+        viewPdf: "Open / Download PDF",
+        replyPlaceholder: "Write a reply...",
+        btnReply: "Reply",
+        repliesTitle: "Replies"
+      }
+    };
+
+    // Aplicar Tema Oscuro/Claro y Color de Acento sincronizado con home.html
+    window.syncVisualPreferences = function() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDark = savedTheme ? savedTheme === 'dark' : prefersDark;
+      document.documentElement.classList.toggle('dark', isDark);
+
+      const colorKey = localStorage.getItem('accentColor') || 'indigo';
+      window.communityState.accentColor = colorKey;
+      const palette = ACCENT_MAP[colorKey] || ACCENT_MAP.indigo;
+
+      const btnPub = document.getElementById('btn-publish');
+      if (btnPub) btnPub.className = `px-4 py-1.5 rounded-xl text-white text-xs font-bold shadow-md flex items-center gap-1.5 transition-all active:scale-95 ${palette.bg}`;
+
+      const avatar = document.getElementById('composer-avatar');
+      if (avatar) avatar.className = `w-9 h-9 rounded-full ${palette.avatar} text-white flex items-center justify-center font-black text-sm uppercase flex-shrink-0 shadow-sm mt-0.5 transition-colors`;
+
+      const feedIcon = document.getElementById('feed-header-icon');
+      if (feedIcon) feedIcon.setAttribute('class', `w-4 h-4 ${palette.text}`);
+
+      // Idioma
+      const lang = localStorage.getItem('lang') || 'es';
+      window.communityState.lang = lang;
+      const dict = I18N[lang] || I18N.es;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const k = el.getAttribute('data-i18n');
+        if (dict[k]) el.innerText = dict[k];
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const k = el.getAttribute('data-i18n-placeholder');
+        if (dict[k]) el.placeholder = dict[k];
+      });
+
+      updateFilterButtonsUI();
+    };
+
+    function updateFilterButtonsUI() {
+      const mode = window.communityState.filterMode;
+      const palette = ACCENT_MAP[window.communityState.accentColor] || ACCENT_MAP.indigo;
+      const btnRecent = document.getElementById('filter-recent');
+      const btnLikes = document.getElementById('filter-likes');
+
+      if (!btnRecent || !btnLikes) return;
+
+      if (mode === 'recent') {
+        btnRecent.className = `px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white dark:bg-slate-700 ${palette.text} shadow-sm transition-all flex items-center gap-1`;
+        btnLikes.className = `px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all flex items-center gap-1`;
+      } else {
+        btnLikes.className = `px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white dark:bg-slate-700 ${palette.text} shadow-sm transition-all flex items-center gap-1`;
+        btnRecent.className = `px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all flex items-center gap-1`;
+      }
+    }
+
+    // Cambiar filtro entre 'recent' y 'likes'
+    window.setFeedFilter = function(mode) {
+      window.communityState.filterMode = mode;
+      updateFilterButtonsUI();
+      if (window.renderPostsFeed) window.renderPostsFeed();
+    };
+
+    window.loadMorePosts = function() {
+      window.communityState.displayLimit += 10;
+      if (window.renderPostsFeed) window.renderPostsFeed();
+    };
+
+    // Comprimir imagen a Base64
+    function compressImageToBase64(file, maxWidth = 960, quality = 0.72) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            resolve(dataUrl);
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Convertir PDF a Base64 validando tamaño seguro para Firestore (< 700 KB)
+    function readPdfToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const MAX_PDF_BYTES = 700 * 1024;
+        if (file.size > MAX_PDF_BYTES) {
+          reject(new Error("El PDF supera los 700 KB permitidos para almacenamiento directo."));
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Selección de archivo (Imagen o PDF)
+    window.handleFileSelect = async function(event, type) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      try {
+        if (type === 'image') {
+          const base64 = await compressImageToBase64(file);
+          if (base64.length > 880000) {
+            showToast("La imagen es demasiado pesada incluso comprimida", "error");
+            return;
+          }
+          window.communityState.attachment = {
+            type: 'image',
+            base64,
+            name: file.name,
+            sizeLabel: `${Math.round(base64.length / 1024)} KB`
+          };
+
+          document.getElementById('attachment-preview').classList.remove('hidden');
+          document.getElementById('preview-image-box').classList.remove('hidden');
+          document.getElementById('preview-pdf-box').classList.add('hidden');
+          document.getElementById('preview-image-el').src = base64;
+
+        } else if (type === 'pdf') {
+          const base64 = await readPdfToBase64(file);
+          const sizeKb = Math.max(1, Math.round(file.size / 1024));
+          window.communityState.attachment = {
+            type: 'pdf',
+            base64,
+            name: file.name,
+            sizeLabel: `${sizeKb} KB`
+          };
+
+          document.getElementById('attachment-preview').classList.remove('hidden');
+          document.getElementById('preview-pdf-box').classList.remove('hidden');
+          document.getElementById('preview-image-box').classList.add('hidden');
+          document.getElementById('preview-pdf-name').innerText = file.name;
+          document.getElementById('preview-pdf-size').innerText = `${sizeKb} KB • PDF`;
+        }
+        if (window.lucide) lucide.createIcons();
+      } catch (err) {
+        showToast(err.message || "Error al procesar el archivo", "error");
+        clearAttachment();
+      }
+    };
+
+    window.clearAttachment = function() {
+      window.communityState.attachment = null;
+      document.getElementById('input-image').value = '';
+      document.getElementById('input-pdf').value = '';
+      document.getElementById('attachment-preview').classList.add('hidden');
+      document.getElementById('preview-image-box').classList.add('hidden');
+      document.getElementById('preview-pdf-box').classList.add('hidden');
+    };
+
+    // Helper robusto para convertir Base64 a Blob URL (soluciona iframe de PDF y descargas móviles)
+    function base64ToBlobUrl(base64Data, contentType) {
+      try {
+        const parts = base64Data.split(';');
+        const rawData = parts[1].split(',')[1];
+        const byteCharacters = atob(rawData);
+        const byteArrays = [];
+        for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+          const slice = byteCharacters.slice(offset, offset + 512);
+          const byteNumbers = new Array(slice.length);
+          for (let i = 0; i < slice.length; i++) {
+            byteNumbers[i] = slice.charCodeAt(i);
+          }
+          byteArrays.push(new Uint8Array(byteNumbers));
+        }
+        const blob = new Blob(byteArrays, { type: contentType });
+        return URL.createObjectURL(blob);
+      } catch (e) {
+        console.error("Error convirtiendo base64 a blob:", e);
+        return base64Data; // Fallback al datauri original
+      }
+    }
+
+    // Modal Visor Multimedia con Blob URL corregido
+    window.openMediaModal = function(type, base64, title) {
+      const modal = document.getElementById('media-modal');
+      const imgEl = document.getElementById('media-modal-img');
+      const pdfEl = document.getElementById('media-modal-pdf');
+      const titleEl = document.getElementById('media-modal-title');
+
+      titleEl.innerText = title || 'Archivo adjunto';
+      window.communityState.currentModalData = { type, base64, title: title || (type === 'pdf' ? 'documento.pdf' : 'imagen.jpg') };
+
+      if (type === 'image') {
+        imgEl.src = base64;
+        imgEl.classList.remove('hidden');
+        pdfEl.classList.add('hidden');
+        pdfEl.src = '';
+      } else {
+        const pdfBlobUrl = base64ToBlobUrl(base64, 'application/pdf');
+        pdfEl.src = pdfBlobUrl;
+        pdfEl.classList.remove('hidden');
+        imgEl.classList.add('hidden');
+        imgEl.src = '';
+      }
+
+      modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    };
+
+    // Función de descarga robusta mediante creación de enlace virtual de descarga
+    window.downloadCurrentMedia = function() {
+      const { type, base64, title } = window.communityState.currentModalData;
+      if (!base64) return;
+      
+      try {
+        const mime = type === 'pdf' ? 'application/pdf' : 'image/jpeg';
+        const blobUrl = base64ToBlobUrl(base64, mime);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = title || (type === 'pdf' ? 'documento.pdf' : 'imagen.jpg');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      } catch (err) {
+        console.error("Error en descarga:", err);
+        showToast("No se pudo iniciar la descarga", "error");
+      }
+    };
+
+    window.closeMediaModal = function() {
+      const modal = document.getElementById('media-modal');
+      const pdfEl = document.getElementById('media-modal-pdf');
+      if (pdfEl.src && pdfEl.src.startsWith('blob:')) {
+        URL.revokeObjectURL(pdfEl.src);
+      }
+      document.getElementById('media-modal-img').src = '';
+      pdfEl.src = '';
+      window.communityState.currentModalData = { type: null, base64: null, title: null };
+      modal.classList.add('hidden');
+    };
+
+    // Escuchar cambios desde home.html
+    window.addEventListener('message', (event) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'FOCUS_RUSHER_SYNC' && event.data.payload) {
+        window.communityState.session = event.data.payload;
+        const email = event.data.payload.email || '?';
+        document.getElementById('composer-avatar').innerText = email[0].toUpperCase();
+      }
+      syncVisualPreferences();
+    });
+
+    window.addEventListener('storage', () => {
+      syncVisualPreferences();
+    });
+
+    syncVisualPreferences();
+  </script>
+
+  <!-- =====================================================================
+       MÓDULO FIREBASE: PUBLICAR, LEER, LIKEAR, ELIMINAR Y RESPUESTAS (REPLIES)
+  ====================================================================== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      collection, 
+      addDoc, 
+      doc, 
+      updateDoc, 
+      deleteDoc, 
+      onSnapshot, 
+      arrayUnion, 
+      arrayRemove, 
+      serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD5nMXGPuYDLspZGAkS1nE3XSF6RvMaVdw",
+      authDomain: "focusrusherv4.firebaseapp.com",
+      projectId: "focusrusherv4",
+      storageBucket: "focusrusherv4.firebasestorage.app",
+      messagingSenderId: "821506625432",
+      appId: "1:821506625432:web:f5428274eb45561c2be5ed"
+    };
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'focus-rusher-pwa';
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Sanitización XSS
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag]));
+    }
+
+    // Formatear fecha relativa limpia
+    function formatRelativeTime(timestamp) {
+      if (!timestamp) return window.communityState.lang === 'en' ? 'Just now' : 'Ahora mismo';
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+      const isEn = window.communityState.lang === 'en';
+
+      if (diffSec < 60) return isEn ? 'Just now' : 'Hace un momento';
+      const diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return isEn ? `${diffMin}m ago` : `Hace ${diffMin} min`;
+      const diffHr = Math.floor(diffMin / 60);
+      if (diffHr < 24) return isEn ? `${diffHr}h ago` : `Hace ${diffHr} h`;
+      const diffDays = Math.floor(diffHr / 24);
+      if (diffDays < 7) return isEn ? `${diffDays}d ago` : `Hace ${diffDays} d`;
+      return date.toLocaleDateString();
+    }
+
+    window.showToast = function(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      const toastContent = document.getElementById('toast-content');
+      const toastMsg = document.getElementById('toast-message');
+      if (!toast || !toastMsg) return;
+
+      toastMsg.innerText = message;
+      if (type === 'error') {
+        toastContent.className = 'p-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-semibold border bg-rose-950/95 text-rose-200 border-rose-800';
+      } else if (type === 'success') {
+        toastContent.className = 'p-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-semibold border bg-emerald-950/95 text-emerald-200 border-emerald-800';
+      } else {
+        toastContent.className = 'p-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-semibold border bg-slate-800 text-white border-slate-700';
+      }
+
+      toast.classList.remove('-translate-y-24', 'opacity-0', 'pointer-events-none');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.add('-translate-y-24', 'opacity-0', 'pointer-events-none');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 3000);
+    };
+
+    // Publicar nuevo post en Firestore
+    window.handlePublishPost = async function(e) {
+      e.preventDefault();
+      const session = window.communityState.session;
+      const user = auth.currentUser;
+      if (!session || !user) {
+        showToast("Debes iniciar sesión para publicar", "error");
+        return;
+      }
+
+      const textEl = document.getElementById('post-text');
+      const text = textEl.value.trim();
+      const attachment = window.communityState.attachment;
+
+      if (!text && !attachment) {
+        showToast("Escribe un mensaje o adjunta una imagen/PDF", "error");
+        return;
+      }
+
+      const btn = document.getElementById('btn-publish');
+      btn.disabled = true;
+
+      try {
+        const postsColRef = collection(db, 'artifacts', appId, 'schools', session.schoolId, 'posts');
+        
+        const postPayload = {
+          authorUid: user.uid,
+          authorEmail: user.email || session.email,
+          schoolId: session.schoolId,
+          text: text,
+          mediaType: attachment ? attachment.type : 'none',
+          mediaBase64: attachment ? attachment.base64 : null,
+          mediaName: attachment ? attachment.name : null,
+          mediaSize: attachment ? attachment.sizeLabel : null,
+          likedBy: [],
+          likesCount: 0,
+          replies: [], // Array de respuestas internas
+          createdAt: serverTimestamp(),
+          createdAtMs: Date.now()
+        };
+
+        await addDoc(postsColRef, postPayload);
+
+        textEl.value = '';
+        window.clearAttachment();
+        showToast("¡Publicado en el muro escolar!", "success");
+
+      } catch (err) {
+        console.error("Error al publicar:", err);
+        showToast("Error al publicar. Verifica el tamaño del archivo.", "error");
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    // Dar o quitar Like (Sin puntos)
+    window.toggleLikePost = async function(postId) {
+      const session = window.communityState.session;
+      const user = auth.currentUser;
+      if (!session || !user) return;
+
+      const post = window.communityState.allPosts.find(p => p.id === postId);
+      if (!post) return;
+
+      const likedBy = Array.isArray(post.likedBy) ? post.likedBy : [];
+      const alreadyLiked = likedBy.includes(user.uid);
+      const postDocRef = doc(db, 'artifacts', appId, 'schools', session.schoolId, 'posts', postId);
+
+      try {
+        if (alreadyLiked) {
+          await updateDoc(postDocRef, {
+            likedBy: arrayRemove(user.uid),
+            likesCount: Math.max(0, likedBy.length - 1)
+          });
+        } else {
+          await updateDoc(postDocRef, {
+            likedBy: arrayUnion(user.uid),
+            likesCount: likedBy.length + 1
+          });
+        }
+      } catch (err) {
+        console.error("Error en like:", err);
+        showToast("No se pudo actualizar el Me gusta", "error");
+      }
+    };
+
+    // Toggle para desplegar u ocultar el panel de respuestas de un post
+    window.toggleRepliesSection = function(postId) {
+      if (window.communityState.activeRepliesPostId === postId) {
+        window.communityState.activeRepliesPostId = null;
+      } else {
+        window.communityState.activeRepliesPostId = postId;
+      }
+      window.renderPostsFeed();
+    };
+
+    // Enviar una respuesta (reply) a un post
+    window.handlePublishReply = async function(e, postId) {
+      e.preventDefault();
+      const session = window.communityState.session;
+      const user = auth.currentUser;
+      if (!session || !user) {
+        showToast("Debes iniciar sesión para responder", "error");
+        return;
+      }
+
+      const inputEl = document.getElementById(`reply-input-${postId}`);
+      if (!inputEl) return;
+      const replyText = inputEl.value.trim();
+      if (!replyText) return;
+
+      const post = window.communityState.allPosts.find(p => p.id === postId);
+      if (!post) return;
+
+      const postDocRef = doc(db, 'artifacts', appId, 'schools', session.schoolId, 'posts', postId);
+      const currentReplies = Array.isArray(post.replies) ? post.replies : [];
+
+      const newReply = {
+        id: 'reply_' + Date.now() + Math.random().toString(36).substr(2, 5),
+        authorUid: user.uid,
+        authorEmail: user.email || session.email,
+        text: replyText,
+        createdAtMs: Date.now()
+      };
+
+      try {
+        await updateDoc(postDocRef, {
+          replies: [...currentReplies, newReply]
+        });
+        inputEl.value = '';
+        showToast("Respuesta publicada", "success");
+      } catch (err) {
+        console.error("Error al publicar respuesta:", err);
+        showToast("No se pudo enviar la respuesta", "error");
+      }
+    };
+
+    // Eliminar una respuesta propia
+    window.deleteOwnReply = async function(postId, replyId) {
+      const session = window.communityState.session;
+      if (!session) return;
+
+      const post = window.communityState.allPosts.find(p => p.id === postId);
+      if (!post) return;
+
+      const currentReplies = Array.isArray(post.replies) ? post.replies : [];
+      const updatedReplies = currentReplies.filter(r => r.id !== replyId);
+      const postDocRef = doc(db, 'artifacts', appId, 'schools', session.schoolId, 'posts', postId);
+
+      try {
+        await updateDoc(postDocRef, {
+          replies: updatedReplies
+        });
+        showToast("Respuesta eliminada", "info");
+      } catch (err) {
+        console.error("Error al eliminar respuesta:", err);
+        showToast("No se pudo eliminar la respuesta", "error");
+      }
+    };
+
+    // Eliminar publicación propia
+    window.deleteOwnPost = async function(postId) {
+      const session = window.communityState.session;
+      if (!session) return;
+
+      try {
+        const postDocRef = doc(db, 'artifacts', appId, 'schools', session.schoolId, 'posts', postId);
+        await deleteDoc(postDocRef);
+        showToast("Publicación eliminada", "info");
+      } catch (err) {
+        console.error("Error al eliminar post:", err);
+        showToast("Error al eliminar publicación", "error");
+      }
+    };
+
+    // Renderizar Feed filtrando y aplicando límite inicial de 10 posts
+    window.renderPostsFeed = function() {
+      const container = document.getElementById('posts-feed');
+      const loadMoreBox = document.getElementById('load-more-container');
+      const countBadge = document.getElementById('posts-count-badge');
+      const currentUid = auth.currentUser?.uid;
+
+      const allPosts = [...window.communityState.allPosts];
+      if (countBadge) countBadge.innerText = allPosts.length;
+
+      if (allPosts.length === 0) {
+        const emptyMsg = window.communityState.lang === 'en' 
+          ? "No posts in your school yet. Be the first to share something!" 
+          : "Aún no hay publicaciones en tu escuela. ¡Sé el primero en compartir algo!";
+        container.innerHTML = `
+          <div class="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 text-center space-y-2">
+            <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 mx-auto flex items-center justify-center text-slate-400">
+              <i data-lucide="message-square-plus" class="w-6 h-6"></i>
+            </div>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed">${emptyMsg}</p>
+          </div>
+        `;
+        if (loadMoreBox) loadMoreBox.classList.add('hidden');
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      // Ordenar en memoria según filtro seleccionado ('recent' o 'likes')
+      if (window.communityState.filterMode === 'likes') {
+        allPosts.sort((a, b) => {
+          const likesA = Array.isArray(a.likedBy) ? a.likedBy.length : (a.likesCount || 0);
+          const likesB = Array.isArray(b.likedBy) ? b.likedBy.length : (b.likesCount || 0);
+          if (likesB !== likesA) return likesB - likesA;
+          return (b.createdAtMs || 0) - (a.createdAtMs || 0);
+        });
+      } else {
+        allPosts.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+      }
+
+      const limit = window.communityState.displayLimit;
+      const visiblePosts = allPosts.slice(0, limit);
+
+      if (loadMoreBox) {
+        if (allPosts.length > limit) {
+          loadMoreBox.classList.remove('hidden');
+        } else {
+          loadMoreBox.classList.add('hidden');
+        }
+      }
+
+      let html = '';
+      visiblePosts.forEach(post => {
+        const email = post.authorEmail || 'usuario@escuela.edu';
+        const username = escapeHTML(email.split('@')[0]);
+        const initial = escapeHTML(email[0]?.toUpperCase() || '?');
+        const safeText = escapeHTML(post.text);
+        const timeLabel = formatRelativeTime(post.createdAt || post.createdAtMs);
+        const likedBy = Array.isArray(post.likedBy) ? post.likedBy : [];
+        const isLiked = currentUid ? likedBy.includes(currentUid) : false;
+        const likesCount = likedBy.length;
+        const isAuthor = currentUid && post.authorUid === currentUid;
+
+        const replies = Array.isArray(post.replies) ? post.replies : [];
+        const repliesCount = replies.length;
+        const isRepliesOpen = window.communityState.activeRepliesPostId === post.id;
+        const isEn = window.communityState.lang === 'en';
+
+        // Bloque Multimedia (Imagen o PDF en Base64)
+        let mediaHtml = '';
+        if (post.mediaType === 'image' && post.mediaBase64) {
+          const safeName = escapeHTML(post.mediaName || 'imagen.jpg');
+          mediaHtml = `
+            <div onclick="openMediaModal('image', '${post.mediaBase64}', '${safeName}')" class="mt-2.5 rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 cursor-zoom-in group relative">
+              <img src="${post.mediaBase64}" alt="${safeName}" loading="lazy" class="w-full max-h-72 object-cover group-hover:scale-[1.01] transition-transform duration-300">
+            </div>
+          `;
+        } else if (post.mediaType === 'pdf' && post.mediaBase64) {
+          const safeName = escapeHTML(post.mediaName || 'documento.pdf');
+          const safeSize = escapeHTML(post.mediaSize || 'PDF');
+          mediaHtml = `
+            <div onclick="openMediaModal('pdf', '${post.mediaBase64}', '${safeName}')" class="mt-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 hover:bg-rose-50/70 dark:hover:bg-rose-950/30 border border-slate-200 dark:border-slate-700/80 flex items-center justify-between gap-3 cursor-pointer transition-colors group">
+              <div class="flex items-center gap-3 overflow-hidden">
+                <div class="p-2.5 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex-shrink-0">
+                  <i data-lucide="file-text" class="w-5 h-5"></i>
+                </div>
+                <div class="overflow-hidden">
+                  <p class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">${safeName}</p>
+                  <p class="text-[10px] font-mono text-slate-500">${safeSize} • PDF</p>
+                </div>
+              </div>
+              <span class="p-1.5 rounded-xl bg-white dark:bg-slate-800 text-slate-500 group-hover:text-rose-500 shadow-sm flex-shrink-0">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+              </span>
+            </div>
+          `;
+        }
+
+        // Renderizado de lista de comentarios / respuestas
+        let repliesListHtml = '';
+        if (replies.length === 0) {
+          repliesListHtml = `<p class="text-[11px] text-slate-400 dark:text-slate-500 text-center py-2 italic">${isEn ? 'No replies yet. Be the first!' : 'Aún no hay respuestas. ¡Sé el primero!'}</p>`;
+        } else {
+          replies.forEach(reply => {
+            const rEmail = reply.authorEmail || 'usuario@escuela.edu';
+            const rUser = escapeHTML(rEmail.split('@')[0]);
+            const rInit = escapeHTML(rEmail[0]?.toUpperCase() || '?');
+            const rText = escapeHTML(reply.text);
+            const rTime = formatRelativeTime(reply.createdAtMs);
+            const isReplyAuthor = currentUid && reply.authorUid === currentUid;
+
+            repliesListHtml += `
+              <div class="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-full bg-slate-600 text-white flex items-center justify-center font-bold text-[10px] uppercase">
+                      ${rInit}
+                    </div>
+                    <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">@${rUser}</span>
+                    <span class="text-[9px] text-slate-400">${rTime}</span>
+                  </div>
+                  ${isReplyAuthor ? `
+                    <button onclick="deleteOwnReply('${post.id}', '${reply.id}')" class="p-1 rounded text-slate-400 hover:text-rose-500 transition-colors" title="Eliminar respuesta">
+                      <i data-lucide="trash-2" class="w-3 h-3"></i>
+                    </button>
+                  ` : ''}
+                </div>
+                <p class="text-xs text-slate-700 dark:text-slate-300 pl-8 whitespace-pre-line break-words leading-relaxed">${rText}</p>
+              </div>
+            `;
+          });
+        }
+
+        html += `
+          <article class="animate-post p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/90 shadow-sm space-y-2.5">
+            <!-- Cabecera del Post -->
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2.5 overflow-hidden">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-slate-700 to-slate-600 dark:from-slate-800 dark:to-slate-700 text-white flex items-center justify-center font-black text-xs uppercase flex-shrink-0 shadow-sm">
+                  ${initial}
+                </div>
+                <div class="overflow-hidden">
+                  <p class="text-xs font-bold text-slate-900 dark:text-white truncate">@${username}</p>
+                  <p class="text-[10px] text-slate-400 dark:text-slate-500 font-medium">${timeLabel}</p>
+                </div>
+              </div>
+
+              ${isAuthor ? `
+                <button onclick="deleteOwnPost('${post.id}')" class="p-1.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors" title="Eliminar publicación">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              ` : ''}
+            </div>
+
+            <!-- Texto de la Publicación -->
+            ${safeText ? `<p class="text-xs sm:text-[13px] text-slate-700 dark:text-slate-200 whitespace-pre-line break-words leading-relaxed">${safeText}</p>` : ''}
+
+            <!-- Contenido Multimedia Base64 -->
+            ${mediaHtml}
+
+            <!-- Footer de Interacción (Like y Replies) -->
+            <div class="pt-1.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <!-- Botón Me Gusta -->
+                <button onclick="toggleLikePost('${post.id}')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-90 ${isLiked ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}">
+                  <i data-lucide="heart" class="w-4 h-4 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}"></i>
+                  <span>${likesCount}</span>
+                </button>
+
+                <!-- Botón Comentarios / Replies -->
+                <button onclick="toggleRepliesSection('${post.id}')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-90 ${isRepliesOpen ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}">
+                  <i data-lucide="message-circle" class="w-4 h-4"></i>
+                  <span>${repliesCount}</span>
+                </button>
+              </div>
+
+              <span class="text-[10px] font-mono text-slate-400 dark:text-slate-600 uppercase">${escapeHTML(post.schoolId || '')}</span>
+            </div>
+
+            <!-- Cajón Desplegable de Respuestas (Replies) -->
+            ${isRepliesOpen ? `
+              <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+                <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  ${repliesListHtml}
+                </div>
+
+                <!-- Formulario para Enviar Respuesta -->
+                <form onsubmit="handlePublishReply(event, '${post.id}')" class="flex items-center gap-2 pt-1">
+                  <input 
+                    type="text" 
+                    id="reply-input-${post.id}" 
+                    maxlength="500"
+                    placeholder="${isEn ? 'Write a reply...' : 'Escribe una respuesta...'}"
+                    class="flex-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                  <button type="submit" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-sm transition-all flex-shrink-0 active:scale-95">
+                    ${isEn ? 'Reply' : 'Responder'}
+                  </button>
+                </form>
+              </div>
+            ` : ''}
+          </article>
+        `;
+      });
+
+      container.innerHTML = html;
+      if (window.lucide) lucide.createIcons();
+    };
+
+    // Suscribirse en tiempo real a los posts de la escuela
+    function subscribeToSchoolPosts(schoolId) {
+      const postsColRef = collection(db, 'artifacts', appId, 'schools', schoolId, 'posts');
+      
+      if (window.communityState.unsubscribePosts) {
+        window.communityState.unsubscribePosts();
+      }
+
+      window.communityState.unsubscribePosts = onSnapshot(postsColRef, (snapshot) => {
+        const list = [];
+        snapshot.forEach(docSnap => {
+          list.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        window.communityState.allPosts = list;
+        window.renderPostsFeed();
+      }, (err) => {
+        console.error("Error cargando feed de comunidad:", err);
+        showToast("Error de permisos al cargar el muro", "error");
+      });
+    }
+
+    // Inicialización al cargar el iframe
+    window.addEventListener('load', () => {
+      if (window.lucide) lucide.createIcons();
+
+      let savedSession = null;
+      try {
+        const raw = sessionStorage.getItem('school_user_session') || localStorage.getItem('school_user_session');
+        if (raw) savedSession = JSON.parse(raw);
+      } catch {}
+
+      onAuthStateChanged(auth, (user) => {
+        if (user && savedSession && savedSession.schoolId) {
+          window.communityState.session = {
+            uid: user.uid,
+            email: user.email || savedSession.email,
+            schoolId: savedSession.schoolId
+          };
+          const initial = (user.email || savedSession.email || '?')[0].toUpperCase();
+          document.getElementById('composer-avatar').innerText = initial;
+          subscribeToSchoolPosts(savedSession.schoolId);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
