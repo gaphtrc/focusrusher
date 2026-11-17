@@ -41,6 +41,7 @@ A social learning space where students can connect, collaborate, and help each o
 | JavaScript | Application logic and interactions |
 | Firebase Authentication | User authentication |
 | Firebase Hosting | Application deployment |
+| Firebase Firestore | Database |
 
 ## Project Structure
 
@@ -70,7 +71,7 @@ FocusRusher was developed as a real-world student productivity project.
 
 ## Live Demo
 
-Explore the application and create a test student account to try its features.
+Create a sample school ID and invite others to join you and explore the platform!
 
 **Live Demo:** [FocusRusher V4](https://focusrusherv4.web.app)
 
